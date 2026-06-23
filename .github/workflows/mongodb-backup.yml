@@ -1,0 +1,28 @@
+name: MongoDB Backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Create backup
+        run: |
+          mkdir -p backups
+          docker run --rm \
+            -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+            -v "$PWD/backups:/backups" \
+            mongo:7 \
+            sh -c 'mongodump --uri="$MONGODB_URI" --archive="/backups/nexus-$(date -u +%Y-%m-%dT%H-%M-%SZ).archive.gz" --gzip'
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-backup
+          path: backups/*.archive.gz
+          retention-days: 14

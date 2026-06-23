@@ -1,0 +1,53 @@
+{
+  "reports": [
+    { "id": "RPT-101", "name": "Student Enrollment Summary", "type": "Enrollment", "owner": "Campus Admin", "updated": "2026-06-21", "status": "Ready" },
+    { "id": "RPT-102", "name": "Attendance Risk Report", "type": "Attendance", "owner": "Academic Office", "updated": "2026-06-20", "status": "Ready" },
+    { "id": "RPT-103", "name": "Grade Distribution Audit", "type": "Grades", "owner": "Assessment Team", "updated": "2026-06-19", "status": "Review" },
+    { "id": "RPT-104", "name": "Course Capacity Forecast", "type": "Courses", "owner": "Planning Team", "updated": "2026-06-18", "status": "Draft" }
+  ],
+  "reportSummary": {
+    "generated": 128,
+    "scheduled": 18,
+    "review": 7,
+    "exports": 342
+  },
+  "analyticsSummary": {
+    "retention": "97.2%",
+    "attendance": "94.8%",
+    "performance": "3.72",
+    "capacity": "81%"
+  },
+  "performance": [
+    { "label": "Jan", "students": 2480, "attendance": 91, "gpa": 3.42 },
+    { "label": "Feb", "students": 2538, "attendance": 92, "gpa": 3.49 },
+    { "label": "Mar", "students": 2610, "attendance": 93, "gpa": 3.56 },
+    { "label": "Apr", "students": 2694, "attendance": 94, "gpa": 3.61 },
+    { "label": "May", "students": 2776, "attendance": 95, "gpa": 3.68 },
+    { "label": "Jun", "students": 2846, "attendance": 96, "gpa": 3.72 }
+  ],
+  "segments": [
+    { "label": "Engineering", "value": 29, "tone": "blue" },
+    { "label": "Science", "value": 25, "tone": "green" },
+    { "label": "Business", "value": 21, "tone": "amber" },
+    { "label": "Arts", "value": 15, "tone": "violet" },
+    { "label": "Humanities", "value": 10, "tone": "rose" }
+  ],
+  "settings": {
+    "profile": {
+      "name": "Maya Chen",
+      "email": "maya.chen@nexus.edu",
+      "role": "Campus Administrator",
+      "institution": "Northbridge Academy"
+    },
+    "notifications": [
+      { "label": "Attendance alerts", "description": "Notify when a student falls below attendance thresholds.", "enabled": true },
+      { "label": "Grade review reminders", "description": "Send reminders for unpublished grades and assessment reviews.", "enabled": true },
+      { "label": "Course capacity warnings", "description": "Alert administrators when courses approach capacity.", "enabled": false }
+    ],
+    "appearance": [
+      { "label": "Compact density", "description": "Reduce spacing in tables and operational views.", "enabled": false },
+      { "label": "Glass panels", "description": "Use translucent cards and soft shadows across the workspace.", "enabled": true },
+      { "label": "High contrast focus", "description": "Emphasize keyboard focus states for accessibility.", "enabled": true }
+    ]
+  }
+}

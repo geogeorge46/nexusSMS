@@ -1,0 +1,21 @@
+name: Deploy Backend to Render
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "scripts/**"
+      - "package*.json"
+      - "render.yaml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Trigger Render deploy
+        run: |
+          curl --fail --request POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
