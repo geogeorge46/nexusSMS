@@ -22,7 +22,7 @@ export async function attachRequestContext(req, _res, next) {
       }
     }
 
-    if (!req.user && env.allowDemoAuth && !env.isProduction) {
+    if (!req.user && env.allowDemoAuth) {
       const role = req.header('x-user-role') || 'Admin'
 
       req.user = {
