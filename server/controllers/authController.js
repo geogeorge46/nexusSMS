@@ -1,17 +1,11 @@
 import { getAuditContext } from '../middleware/auditMiddleware.js'
-import { loginUser, signupUser } from '../services/authService.js'
+import { loginUser } from '../services/authService.js'
 import { createAuditLog } from '../services/auditLogService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 
-export const signup = asyncHandler(async (req, res) => {
-  const result = await signupUser({
-    name: req.body.name,
-    email: req.body.email,
-    password: req.body.password,
-    role: req.body.role,
-  })
-
-  res.status(201).json(result)
+export const signup = asyncHandler(async (_req, res) => {
+  // TODO: Replace public registration with protected user provisioning in the Admin Management module.
+  res.status(403).json({ message: 'Public registration is disabled' })
 })
 
 export const login = asyncHandler(async (req, res) => {

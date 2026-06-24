@@ -2,6 +2,8 @@ import { User } from '../models/User.js'
 import { signAuthToken } from './authTokenService.js'
 import { hashPassword, validatePasswordStrength, verifyPassword } from './passwordService.js'
 
+const adminRoles = new Set(['Admin', 'Super Admin'])
+
 export async function signupUser({ name, email, password, role = 'Admin' }) {
   const normalizedEmail = normalizeEmail(email)
   const passwordErrors = validatePasswordStrength(password ?? '')
@@ -48,7 +50,7 @@ export async function signupUser({ name, email, password, role = 'Admin' }) {
 export async function loginUser({ email, password }) {
   const user = await User.findOne({ email: normalizeEmail(email) })
 
-  if (!user || user.status !== 'Active') {
+  if (!user || user.status !== 'Active' || !adminRoles.has(user.role)) {
     const error = new Error('Invalid email or password')
     error.statusCode = 401
     throw error

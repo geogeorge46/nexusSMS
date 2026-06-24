@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { GraduationCap, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 
 import { BrandMark } from '@/components/atoms/brand-mark'
@@ -126,12 +126,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           </Button>
         </form>
 
-        <p className="mt-5 text-center text-sm font-medium text-muted-foreground">
-          {mode === 'login' ? 'Need an admin account?' : 'Already have an account?'}{' '}
-          <Link className="font-bold text-primary hover:underline" to={mode === 'login' ? '/signup' : '/login'}>
-            {mode === 'login' ? 'Sign up' : 'Sign in'}
-          </Link>
-        </p>
+        {mode === 'signup' && (
+          <p className="mt-5 text-center text-sm font-medium text-muted-foreground">
+            Already have an account?
+            {/* TODO: Move account lifecycle actions into a protected Admin Management module. */}
+          </p>
+        )}
       </GlassCard>
     </div>
   )

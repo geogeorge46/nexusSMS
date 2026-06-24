@@ -1,6 +1,6 @@
 import { ShieldCheck } from 'lucide-react'
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 
 import { AppShell } from '@/components/templates/app-shell'
 import { GlassCard } from '@/components/ui/card'
@@ -11,7 +11,6 @@ import { PublicOnlyRoute, RequireAuth } from '@/routes/auth-gates'
 
 const DashboardPage = lazyPage(() => import('@/pages/dashboard'), 'DashboardPage')
 const LoginPage = lazyPage(() => import('@/pages/login'), 'LoginPage')
-const SignupPage = lazyPage(() => import('@/pages/signup'), 'SignupPage')
 const StudentListPage = lazyPage(() => import('@/pages/student-list'), 'StudentListPage')
 const AddStudentPage = lazyPage(() => import('@/pages/add-student'), 'AddStudentPage')
 const StudentImportPage = lazyPage(() => import('@/pages/student-import'), 'StudentImportPage')
@@ -38,7 +37,8 @@ export const router = createBrowserRouter([
     element: <PublicOnlyRoute />,
     children: [
       { path: '/login', element: withRouteSuspense(<LoginPage />) },
-      { path: '/signup', element: withRouteSuspense(<SignupPage />) },
+      // TODO: Reintroduce admin account creation through a protected Admin Management module.
+      { path: '/signup', element: <Navigate replace to="/login" /> },
     ],
   },
   {
