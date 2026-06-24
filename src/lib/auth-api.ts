@@ -1,11 +1,14 @@
 import { api } from '@/lib/api'
+import axios from 'axios'
 
 export type AuthUser = {
   id: string
   name: string
   email: string
   role: 'Admin' | 'Super Admin'
-  status: 'Active' | 'Suspended'
+  status?: 'Active' | 'Suspended'
+  lastLoginAt?: string
+  createdAt?: string
 }
 
 export type AuthResponse = {
@@ -14,11 +17,14 @@ export type AuthResponse = {
 }
 
 const tokenKey = 'nexus_auth_token'
+const userKey = 'nexus_auth_user'
 
 export async function loginWithApi(payload: { email: string; password: string }) {
-  const response = await api.post<AuthResponse>('/auth/login', payload)
-  saveAuthToken(response.data.token)
-  return response.data
+  return runAuthRequest(async () => {
+    const response = await api.post<AuthResponse>('/auth/login', payload)
+    saveAuthSession(response.data)
+    return response.data
+  })
 }
 
 export async function signupWithApi(payload: {
@@ -27,17 +33,26 @@ export async function signupWithApi(payload: {
   password: string
   role: 'Admin' | 'Super Admin'
 }) {
-  const response = await api.post<AuthResponse>('/auth/signup', payload)
-  saveAuthToken(response.data.token)
-  return response.data
+  return runAuthRequest(async () => {
+    const response = await api.post<AuthResponse>('/auth/signup', payload)
+    saveAuthSession(response.data)
+    return response.data
+  })
 }
 
 export async function fetchCurrentUser() {
-  const response = await api.get<{ user: AuthUser }>('/auth/me', {
-    headers: getAuthHeaders(),
-  })
+  const response = await api.get<{ user: AuthUser }>('/auth/me')
 
   return response.data.user
+}
+
+export async function logoutWithApi() {
+  await api.post('/auth/logout')
+}
+
+export function saveAuthSession(session: AuthResponse) {
+  saveAuthToken(session.token)
+  saveAuthUser(session.user)
 }
 
 export function saveAuthToken(token: string) {
@@ -48,11 +63,42 @@ export function getAuthToken() {
   return window.localStorage.getItem(tokenKey)
 }
 
-export function clearAuthToken() {
+export function saveAuthUser(user: AuthUser) {
+  window.localStorage.setItem(userKey, JSON.stringify(user))
+}
+
+export function getStoredAuthUser() {
+  const rawUser = window.localStorage.getItem(userKey)
+
+  if (!rawUser) return null
+
+  try {
+    return JSON.parse(rawUser) as AuthUser
+  } catch {
+    window.localStorage.removeItem(userKey)
+    return null
+  }
+}
+
+export function clearAuthSession() {
   window.localStorage.removeItem(tokenKey)
+  window.localStorage.removeItem(userKey)
 }
 
 export function getAuthHeaders() {
   const token = getAuthToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+async function runAuthRequest<T>(request: () => Promise<T>) {
+  try {
+    return await request()
+  } catch (caught) {
+    if (axios.isAxiosError<{ message?: string; details?: string[] }>(caught)) {
+      const message = caught.response?.data?.details?.join(' ') ?? caught.response?.data?.message
+      throw new Error(message ?? 'Authentication failed', { cause: caught })
+    }
+
+    throw caught
+  }
 }

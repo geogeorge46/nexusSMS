@@ -1,0 +1,45 @@
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
+
+import { GlassCard } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
+
+export function RequireAuth() {
+  const location = useLocation()
+  const { isAuthenticated, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+
+  if (!isAuthenticated) {
+    return <Navigate replace state={{ from: location }} to="/login" />
+  }
+
+  return <Outlet />
+}
+
+export function PublicOnlyRoute() {
+  const { isAuthenticated, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+
+  if (isAuthenticated) {
+    return <Navigate replace to="/" />
+  }
+
+  return <Outlet />
+}
+
+function AuthLoadingState() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background p-4">
+      <GlassCard className="w-full max-w-md p-6">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-44" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-11 w-full" />
+          <Skeleton className="h-11 w-full" />
+        </div>
+      </GlassCard>
+    </div>
+  )
+}

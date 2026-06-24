@@ -10,7 +10,9 @@ import {
   markNotificationRead,
   type NexusNotification,
 } from '@/lib/notifications'
-import { getAuthToken } from '@/lib/auth-api'
+import { getAuthToken, getStoredAuthUser } from '@/lib/auth-api'
+import { disconnectNotificationSocket, setNotificationSocket } from '@/lib/notification-socket'
+import { useAuth } from '@/hooks/use-auth'
 
 type Toast = {
   id: string
@@ -39,6 +41,7 @@ const NotificationContext = createContext<NotificationContextValue | null>(null)
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
+  const { token, user } = useAuth()
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -46,6 +49,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const notificationsQuery = useQuery({
     queryKey: ['notifications', page, search],
     queryFn: () => fetchNotifications({ page, search }),
+    enabled: Boolean(token),
     retry: 1,
   })
 
@@ -90,12 +94,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const socket = createNotificationSocket(queryClient, pushToast)
+    if (!token) return undefined
+
+    createNotificationSocket(queryClient, pushToast)
 
     return () => {
-      socket.disconnect()
+      disconnectNotificationSocket()
     }
-  }, [pushToast, queryClient])
+  }, [pushToast, queryClient, token, user?.id, user?.role])
 
   const value = useMemo<NotificationContextValue>(
     () => ({
@@ -160,16 +166,22 @@ function createNotificationSocket(
   queryClient: QueryClient,
   onNotification: (notification: NexusNotification) => void,
 ) {
+  disconnectNotificationSocket()
+
+  const token = getAuthToken()
+  const user = getStoredAuthUser()
   const socketUrl = import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:5000'
   const socket: Socket = io(socketUrl, {
     autoConnect: true,
     transports: ['websocket'],
     auth: {
-      token: getAuthToken(),
-      userId: 'demo-admin',
-      role: 'Super Admin',
+      token,
+      userId: user?.id,
+      role: user?.role,
     },
   })
+
+  setNotificationSocket(socket)
 
   socket.on('notification:new', (notification: NexusNotification) => {
     onNotification(notification)

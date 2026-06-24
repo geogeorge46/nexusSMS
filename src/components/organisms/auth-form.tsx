@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { GraduationCap, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 
 import { BrandMark } from '@/components/atoms/brand-mark'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
-import { loginWithApi, signupWithApi } from '@/lib/auth-api'
+import { useAuth } from '@/hooks/use-auth'
 
 type AuthMode = 'login' | 'signup'
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { login, signup } = useAuth()
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({
@@ -27,12 +29,23 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
     try {
       if (mode === 'login') {
-        await loginWithApi({ email: form.email, password: form.password })
+        await login({ email: form.email, password: form.password })
       } else {
-        await signupWithApi(form)
+        await signup(form)
       }
 
-      navigate('/')
+      const redirectTo =
+        typeof location.state === 'object' &&
+        location.state !== null &&
+        'from' in location.state &&
+        typeof location.state.from === 'object' &&
+        location.state.from !== null &&
+        'pathname' in location.state.from &&
+        typeof location.state.from.pathname === 'string'
+          ? location.state.from.pathname
+          : '/'
+
+      navigate(redirectTo, { replace: true })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Authentication failed')
     } finally {
@@ -109,7 +122,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
           <Button className="w-full" disabled={pending} type="submit">
             {pending ? <Loader2 className="animate-spin" /> : <LockKeyhole />}
-            {mode === 'login' ? 'Sign In' : 'Create Account'}
+            {pending ? 'Please wait' : mode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
         </form>
 

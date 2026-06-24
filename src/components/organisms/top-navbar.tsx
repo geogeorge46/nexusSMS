@@ -9,6 +9,7 @@ import { NotificationBell } from '@/components/organisms/notification-bell'
 import { Sidebar } from '@/components/organisms/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 
 export function TopNavbar() {
   const [open, setOpen] = useState(false)
+  const { logout, user } = useAuth()
+  const initials = getInitials(user?.name ?? 'Campus Admin')
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/72 px-4 py-3 backdrop-blur-2xl sm:px-6">
@@ -63,12 +66,12 @@ export function TopNavbar() {
                 type="button"
               >
                 <Avatar>
-                  <AvatarFallback className="bg-primary text-primary-foreground">MC</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Campus Admin</DropdownMenuLabel>
+              <DropdownMenuLabel>{user?.name ?? 'Campus Admin'}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/settings">Profile</Link>
@@ -76,11 +79,20 @@ export function TopNavbar() {
               <DropdownMenuItem asChild>
                 <Link to="/">Command Center</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>Sign out</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void logout()}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
     </header>
   )
+}
+
+function getInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('')
 }

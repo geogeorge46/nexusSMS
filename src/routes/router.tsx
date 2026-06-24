@@ -7,6 +7,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NotFoundPage } from '@/pages/not-found'
 import { SimplePage } from '@/pages/simple-page'
+import { PublicOnlyRoute, RequireAuth } from '@/routes/auth-gates'
 
 const DashboardPage = lazyPage(() => import('@/pages/dashboard'), 'DashboardPage')
 const LoginPage = lazyPage(() => import('@/pages/login'), 'LoginPage')
@@ -33,43 +34,53 @@ const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs'), 'AuditLogsPag
 const SettingsPage = lazyPage(() => import('@/pages/settings'), 'SettingsPage')
 
 export const router = createBrowserRouter([
-  { path: '/login', element: withRouteSuspense(<LoginPage />) },
-  { path: '/signup', element: withRouteSuspense(<SignupPage />) },
   {
-    path: '/',
-    element: <AppShell />,
-    errorElement: <NotFoundPage />,
+    element: <PublicOnlyRoute />,
     children: [
-      { index: true, element: withRouteSuspense(<DashboardPage />) },
-      { path: 'students', element: withRouteSuspense(<StudentListPage />) },
-      { path: 'students/new', element: withRouteSuspense(<AddStudentPage />) },
-      { path: 'students/import', element: withRouteSuspense(<StudentImportPage />) },
-      { path: 'documents', element: withRouteSuspense(<StudentDocumentsPage />) },
-      { path: 'students/:studentId', element: withRouteSuspense(<StudentProfilePage />) },
-      { path: 'students/:studentId/edit', element: withRouteSuspense(<EditStudentPage />) },
-      { path: 'courses', element: withRouteSuspense(<CourseListPage />) },
-      { path: 'courses/new', element: withRouteSuspense(<AddCoursePage />) },
-      { path: 'courses/:courseId', element: withRouteSuspense(<CourseDetailsPage />) },
-      { path: 'courses/:courseId/edit', element: withRouteSuspense(<EditCoursePage />) },
-      { path: 'attendance', element: withRouteSuspense(<AttendanceDashboardPage />) },
-      { path: 'attendance/mark', element: withRouteSuspense(<MarkAttendancePage />) },
-      { path: 'grades', element: withRouteSuspense(<GradeManagementPage />) },
-      { path: 'reports', element: withRouteSuspense(<ReportsPage />) },
-      { path: 'analytics', element: withRouteSuspense(<AnalyticsPage />) },
-      { path: 'audit-logs', element: withRouteSuspense(<AuditLogsPage />) },
+      { path: '/login', element: withRouteSuspense(<LoginPage />) },
+      { path: '/signup', element: withRouteSuspense(<SignupPage />) },
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
       {
-        path: 'governance',
-        element: (
-          <SimplePage
-            eyebrow="Controls"
-            title="Governance"
-            description="Placeholder structure for roles, audit trails, compliance checks, and secure administrative review."
-            icon={ShieldCheck}
-          />
-        ),
+        path: '/',
+        element: <AppShell />,
+        errorElement: <NotFoundPage />,
+        children: [
+          { index: true, element: withRouteSuspense(<DashboardPage />) },
+          { path: 'students', element: withRouteSuspense(<StudentListPage />) },
+          { path: 'students/new', element: withRouteSuspense(<AddStudentPage />) },
+          { path: 'students/import', element: withRouteSuspense(<StudentImportPage />) },
+          { path: 'documents', element: withRouteSuspense(<StudentDocumentsPage />) },
+          { path: 'students/:studentId', element: withRouteSuspense(<StudentProfilePage />) },
+          { path: 'students/:studentId/edit', element: withRouteSuspense(<EditStudentPage />) },
+          { path: 'courses', element: withRouteSuspense(<CourseListPage />) },
+          { path: 'courses/new', element: withRouteSuspense(<AddCoursePage />) },
+          { path: 'courses/:courseId', element: withRouteSuspense(<CourseDetailsPage />) },
+          { path: 'courses/:courseId/edit', element: withRouteSuspense(<EditCoursePage />) },
+          { path: 'attendance', element: withRouteSuspense(<AttendanceDashboardPage />) },
+          { path: 'attendance/mark', element: withRouteSuspense(<MarkAttendancePage />) },
+          { path: 'grades', element: withRouteSuspense(<GradeManagementPage />) },
+          { path: 'reports', element: withRouteSuspense(<ReportsPage />) },
+          { path: 'analytics', element: withRouteSuspense(<AnalyticsPage />) },
+          { path: 'audit-logs', element: withRouteSuspense(<AuditLogsPage />) },
+          {
+            path: 'governance',
+            element: (
+              <SimplePage
+                eyebrow="Controls"
+                title="Governance"
+                description="Placeholder structure for roles, audit trails, compliance checks, and secure administrative review."
+                icon={ShieldCheck}
+              />
+            ),
+          },
+          { path: 'settings', element: withRouteSuspense(<SettingsPage />) },
+          { path: '*', element: <NotFoundPage /> },
+        ],
       },
-      { path: 'settings', element: withRouteSuspense(<SettingsPage />) },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ])
