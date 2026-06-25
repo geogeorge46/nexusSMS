@@ -7,7 +7,7 @@ import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NotFoundPage } from '@/pages/not-found'
 import { SimplePage } from '@/pages/simple-page'
-import { PublicOnlyRoute, RequireAuth } from '@/routes/auth-gates'
+import { PublicOnlyRoute, RequireAuth, RequireSuperAdmin } from '@/routes/auth-gates'
 
 const DashboardPage = lazyPage(() => import('@/pages/dashboard'), 'DashboardPage')
 const LoginPage = lazyPage(() => import('@/pages/login'), 'LoginPage')
@@ -31,6 +31,7 @@ const ReportsPage = lazyPage(() => import('@/pages/reports'), 'ReportsPage')
 const AnalyticsPage = lazyPage(() => import('@/pages/analytics'), 'AnalyticsPage')
 const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs'), 'AuditLogsPage')
 const SettingsPage = lazyPage(() => import('@/pages/settings'), 'SettingsPage')
+const AdminManagementPage = lazyPage(() => import('@/pages/admin-management'), 'AdminManagementPage')
 
 export const router = createBrowserRouter([
   {
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
           { path: 'reports', element: withRouteSuspense(<ReportsPage />) },
           { path: 'analytics', element: withRouteSuspense(<AnalyticsPage />) },
           { path: 'audit-logs', element: withRouteSuspense(<AuditLogsPage />) },
+          {
+            path: 'admins',
+            element: <RequireSuperAdmin>{withRouteSuspense(<AdminManagementPage />)}</RequireSuperAdmin>,
+          },
           {
             path: 'governance',
             element: (

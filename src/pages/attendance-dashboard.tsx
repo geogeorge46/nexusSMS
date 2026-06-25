@@ -1,4 +1,5 @@
 import { CalendarCheck, Clock, TrendingUp, UserCheck, UserX } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { AttendanceCalendar } from '@/components/organisms/attendance-calendar'
@@ -8,10 +9,17 @@ import { PageHeader } from '@/components/molecules/page-header'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAttendance } from '@/hooks/use-attendance'
+import { getAttendanceErrorMessage, useAttendance, type AttendanceFilters } from '@/hooks/use-attendance'
 
 export function AttendanceDashboardPage() {
-  const { data, isLoading } = useAttendance()
+  const [filters, setFilters] = useState<AttendanceFilters>({
+    date: '',
+    course: 'All',
+    student: '',
+    department: 'All',
+    status: 'All',
+  })
+  const { data, error, isError, isLoading } = useAttendance(filters)
 
   return (
     <div className="space-y-6">
@@ -28,6 +36,13 @@ export function AttendanceDashboardPage() {
           </Button>
         }
       />
+
+      {isError ? (
+        <GlassCard className="p-6 text-center">
+          <p className="text-lg font-bold text-foreground">Unable to load attendance</p>
+          <p className="mt-2 text-sm text-muted-foreground">{getAttendanceErrorMessage(error)}</p>
+        </GlassCard>
+      ) : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {isLoading || !data ? (
@@ -48,7 +63,12 @@ export function AttendanceDashboardPage() {
       </section>
 
       <AttendanceCalendar data={data} isLoading={isLoading} />
-      <AttendanceHistory data={data} isLoading={isLoading} />
+      <AttendanceHistory
+        data={data}
+        filters={filters}
+        isLoading={isLoading}
+        onFiltersChange={(nextFilters) => setFilters((current) => ({ ...current, ...nextFilters }))}
+      />
     </div>
   )
 }

@@ -9,7 +9,7 @@ export function CapacityIndicator({
   capacity: number
   compact?: boolean
 }) {
-  const percent = Math.min(100, Math.round((enrolled / capacity) * 100))
+  const percent = Math.min(100, Math.round((enrolled / Math.max(capacity, 1)) * 100))
   const tone =
     percent >= 95
       ? 'bg-rose-500'

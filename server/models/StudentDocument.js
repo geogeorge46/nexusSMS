@@ -12,27 +12,28 @@ const categories = [
 
 const studentDocumentSchema = new mongoose.Schema(
   {
-    student: {
+    studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Student',
+      required: true,
       index: true,
     },
     studentName: { type: String, trim: true, default: '' },
     registerNumber: { type: String, trim: true, index: true, default: '' },
-    category: {
+    documentType: {
       type: String,
       enum: categories,
       default: 'Other',
       index: true,
     },
     title: { type: String, required: true, trim: true },
-    originalName: { type: String, required: true, trim: true },
+    fileName: { type: String, required: true, trim: true },
     mimeType: { type: String, required: true, trim: true },
-    size: { type: Number, required: true, min: 0 },
+    fileSize: { type: Number, required: true, min: 0 },
     cloudinaryPublicId: { type: String, required: true, trim: true },
     cloudinaryAssetId: { type: String, required: true, trim: true },
     resourceType: { type: String, required: true, enum: ['image', 'raw'], default: 'raw' },
-    secureUrl: { type: String, required: true, trim: true },
+    fileUrl: { type: String, required: true, trim: true },
     downloadUrl: { type: String, required: true, trim: true },
     checksum: { type: String, required: true, trim: true, index: true },
     scanStatus: {
@@ -42,11 +43,12 @@ const studentDocumentSchema = new mongoose.Schema(
       index: true,
     },
     uploadedBy: { type: String, trim: true, default: 'Nexus Admin' },
+    uploadedAt: { type: Date, default: Date.now, index: true },
   },
   { timestamps: true },
 )
 
-studentDocumentSchema.index({ registerNumber: 1, category: 1, createdAt: -1 })
+studentDocumentSchema.index({ studentId: 1, documentType: 1, uploadedAt: -1 })
 
 export const documentCategories = categories
 export const StudentDocument = mongoose.model('StudentDocument', studentDocumentSchema)

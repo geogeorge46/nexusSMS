@@ -26,9 +26,9 @@ import {
   acceptedDocumentExtensions,
   deleteStudentDocument,
   documentCategories,
-  fallbackDocumentData,
   fetchStudentDocuments,
   formatFileSize,
+  getStudentDocumentErrorMessage,
   getStudentDocumentDownloadUrl,
   uploadStudentDocuments,
   validateDocumentFiles,
@@ -36,6 +36,7 @@ import {
   type StudentDocument,
 } from '@/lib/student-documents'
 import { cn } from '@/lib/utils'
+import { useStudents } from '@/hooks/use-students'
 
 export function StudentDocumentWorkspace() {
   const queryClient = useQueryClient()
@@ -43,23 +44,24 @@ export function StudentDocumentWorkspace() {
   const [category, setCategory] = useState<DocumentCategory>('All')
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>('Academic')
   const [search, setSearch] = useState('')
+  const [studentId, setStudentId] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [validationErrors, setValidationErrors] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedDocument, setSelectedDocument] = useState<StudentDocument | null>(null)
   const [metadata, setMetadata] = useState({
     title: '',
-    studentName: '',
-    registerNumber: '',
+    studentId: '',
   })
+  const studentsQuery = useStudents({ search: '', status: 'All', department: 'All', page: 1, limit: 100 })
 
   const documentsQuery = useQuery({
-    queryKey: ['student-documents', category, search],
-    queryFn: () => fetchStudentDocuments({ category, search }),
+    queryKey: ['student-documents', category, search, studentId],
+    queryFn: () => fetchStudentDocuments({ category, search, studentId: studentId || undefined }),
     retry: 1,
   })
 
-  const data = documentsQuery.data ?? fallbackDocumentData
+  const data = documentsQuery.data ?? { documents: [], grouped: [], total: 0 }
   const filteredDocuments = useMemo(() => {
     const query = search.trim().toLowerCase()
 
@@ -83,14 +85,13 @@ export function StudentDocumentWorkspace() {
           files,
           category: uploadCategory,
           title: metadata.title,
-          studentName: metadata.studentName,
-          registerNumber: metadata.registerNumber,
+          studentId: metadata.studentId,
         },
         setUploadProgress,
       ),
     onSuccess() {
       setFiles([])
-      setMetadata({ title: '', studentName: '', registerNumber: '' })
+      setMetadata({ title: '', studentId: '' })
       setUploadProgress(100)
       void queryClient.invalidateQueries({ queryKey: ['student-documents'] })
     },
@@ -131,13 +132,14 @@ export function StudentDocumentWorkspace() {
           files={files}
           inputRef={inputRef}
           metadata={metadata}
+          students={studentsQuery.data?.items ?? []}
           onMetadataChange={setMetadata}
           onQueueFiles={queueFiles}
           onRemoveFile={removeQueuedFile}
           onUpload={runUpload}
           progress={uploadProgress}
           uploadCategory={uploadCategory}
-          uploadError={uploadMutation.error instanceof Error ? uploadMutation.error.message : ''}
+          uploadError={uploadMutation.error ? getStudentDocumentErrorMessage(uploadMutation.error) : ''}
           uploadPending={uploadMutation.isPending}
           validationErrors={validationErrors}
           onUploadCategoryChange={setUploadCategory}
@@ -145,8 +147,12 @@ export function StudentDocumentWorkspace() {
         <DocumentPreview
           document={selectedDocument}
           deleting={deleteMutation.isPending}
+          deleteError={deleteMutation.error ? getStudentDocumentErrorMessage(deleteMutation.error) : ''}
           onDelete={(documentId) => deleteMutation.mutate(documentId)}
-          onClose={() => setSelectedDocument(null)}
+          onClose={() => {
+            deleteMutation.reset()
+            setSelectedDocument(null)
+          }}
         />
       </section>
 
@@ -185,6 +191,7 @@ export function StudentDocumentWorkspace() {
             </label>
             <select
               className="h-10 rounded-2xl border border-border bg-background/75 px-3 text-sm font-semibold text-foreground outline-none ring-ring focus:ring-2"
+              disabled={studentsQuery.isLoading || studentsQuery.isError}
               onChange={(event) => setCategory(event.target.value as DocumentCategory)}
               value={category}
             >
@@ -194,12 +201,26 @@ export function StudentDocumentWorkspace() {
                 </option>
               ))}
             </select>
+            <select
+              className="h-10 rounded-2xl border border-border bg-background/75 px-3 text-sm font-semibold text-foreground outline-none ring-ring focus:ring-2"
+              onChange={(event) => setStudentId(event.target.value)}
+              value={studentId}
+            >
+              <option value="">
+                {studentsQuery.isLoading ? 'Loading students...' : studentsQuery.isError ? 'Students unavailable' : 'All students'}
+              </option>
+              {(studentsQuery.data?.items ?? []).map((student) => <option key={student.databaseId} value={student.databaseId}>{student.name}</option>)}
+            </select>
           </div>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {documentsQuery.isLoading ? (
             Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-44" />)
+          ) : documentsQuery.isError ? (
+            <div className="col-span-full rounded-[20px] border border-rose-500/30 bg-rose-500/10 p-8 text-center text-sm font-semibold text-rose-700">
+              {getStudentDocumentErrorMessage(documentsQuery.error)}
+            </div>
           ) : filteredDocuments.length === 0 ? (
             <div className="col-span-full rounded-[20px] border border-dashed border-border bg-muted/35 p-8 text-center text-sm font-semibold text-muted-foreground">
               No documents match the selected filters.
@@ -210,7 +231,10 @@ export function StudentDocumentWorkspace() {
                 document={document}
                 index={index}
                 key={document._id}
-                onPreview={() => setSelectedDocument(document)}
+                onPreview={() => {
+                  deleteMutation.reset()
+                  setSelectedDocument(document)
+                }}
               />
             ))
           )}
@@ -223,8 +247,9 @@ export function StudentDocumentWorkspace() {
 type UploadPanelProps = {
   files: File[]
   inputRef: RefObject<HTMLInputElement | null>
-  metadata: { title: string; studentName: string; registerNumber: string }
-  onMetadataChange: (value: { title: string; studentName: string; registerNumber: string }) => void
+  metadata: { title: string; studentId: string }
+  students: Array<{ databaseId: string; name: string; id: string }>
+  onMetadataChange: (value: { title: string; studentId: string }) => void
   onQueueFiles: (files: File[]) => void
   onRemoveFile: (fileName: string) => void
   onUpload: () => void
@@ -240,6 +265,7 @@ function UploadPanel({
   files,
   inputRef,
   metadata,
+  students,
   onMetadataChange,
   onQueueFiles,
   onRemoveFile,
@@ -251,7 +277,7 @@ function UploadPanel({
   validationErrors,
   onUploadCategoryChange,
 }: UploadPanelProps) {
-  const canUpload = files.length > 0 && validationErrors.length === 0 && !uploadPending
+  const canUpload = files.length > 0 && Boolean(metadata.studentId) && validationErrors.length === 0 && !uploadPending
 
   return (
     <GlassCard className="p-5">
@@ -291,18 +317,13 @@ function UploadPanel({
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <Field
-          label="Student name"
-          onChange={(value) => onMetadataChange({ ...metadata, studentName: value })}
-          placeholder="Maya Rao"
-          value={metadata.studentName}
-        />
-        <Field
-          label="Register number"
-          onChange={(value) => onMetadataChange({ ...metadata, registerNumber: value })}
-          placeholder="NX-2026-1002"
-          value={metadata.registerNumber}
-        />
+        <label className="space-y-2">
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Student</span>
+          <select className="h-11 w-full rounded-2xl border border-border bg-background/75 px-3 text-sm font-semibold text-foreground outline-none ring-ring focus:ring-2" disabled={students.length === 0} onChange={(event) => onMetadataChange({ ...metadata, studentId: event.target.value })} value={metadata.studentId}>
+            <option value="">{students.length === 0 ? 'No students available' : 'Select student'}</option>
+            {students.map((student) => <option key={student.databaseId} value={student.databaseId}>{student.name} ({student.id})</option>)}
+          </select>
+        </label>
         <Field
           label="Document title"
           onChange={(value) => onMetadataChange({ ...metadata, title: value })}
@@ -383,11 +404,13 @@ function UploadPanel({
 function DocumentPreview({
   document,
   deleting,
+  deleteError,
   onClose,
   onDelete,
 }: {
   document: StudentDocument | null
   deleting: boolean
+  deleteError: string
   onClose: () => void
   onDelete: (documentId: string) => void
 }) {
@@ -450,13 +473,13 @@ function DocumentPreview({
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild type="button" variant="glass">
-                <a href={getStudentDocumentDownloadUrl(document._id)}>
+                <a download={document.fileName} href={getStudentDocumentDownloadUrl(document)}>
                   <Download />
                   Download
                 </a>
               </Button>
               <Button
-                disabled={deleting || document._id.startsWith('demo-')}
+                disabled={deleting}
                 onClick={() => onDelete(document._id)}
                 type="button"
                 variant="destructive"
@@ -465,6 +488,11 @@ function DocumentPreview({
                 Delete
               </Button>
             </div>
+            {deleteError && (
+              <p className="rounded-[18px] bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+                {deleteError}
+              </p>
+            )}
           </div>
         )}
       </CardContent>
@@ -510,7 +538,7 @@ function DocumentCard({
           Preview
         </Button>
         <Button asChild size="icon" type="button" variant="ghost">
-          <a aria-label={`Download ${document.title}`} href={getStudentDocumentDownloadUrl(document._id)}>
+          <a aria-label={`Download ${document.title}`} download={document.fileName} href={getStudentDocumentDownloadUrl(document)}>
             <Download />
           </a>
         </Button>

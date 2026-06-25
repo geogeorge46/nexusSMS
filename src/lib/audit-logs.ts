@@ -1,5 +1,5 @@
 import { api } from '@/lib/api'
-import { adminHeaders } from '@/lib/notifications'
+import axios from 'axios'
 
 export type AuditLog = {
   _id: string
@@ -29,6 +29,8 @@ export type AuditFilters = {
   role: string
   action: string
   module: string
+  dateFrom: string
+  dateTo: string
   page: number
 }
 
@@ -41,98 +43,41 @@ export async function fetchAuditLogs(filters: AuditFilters) {
       action: filters.action === 'All' ? undefined : filters.action,
       module: filters.module === 'All' ? undefined : filters.module,
     },
-    headers: adminHeaders(),
   })
 
   return response.data
 }
 
-export function getAuditExportUrl(filters: AuditFilters, format: 'csv' | 'excel') {
-  const params = new URLSearchParams()
-  params.set('format', format)
+export async function downloadAuditLogExport(filters: AuditFilters, format: 'csv' | 'excel') {
+  const response = await api.get<Blob>(`/audit-logs/export/${format}`, {
+    params: {
+      search: filters.search || undefined,
+      role: filters.role === 'All' ? undefined : filters.role,
+      action: filters.action === 'All' ? undefined : filters.action,
+      module: filters.module === 'All' ? undefined : filters.module,
+      dateFrom: filters.dateFrom || undefined,
+      dateTo: filters.dateTo || undefined,
+    },
+    responseType: 'blob',
+  })
 
-  if (filters.search) params.set('search', filters.search)
-  if (filters.role !== 'All') params.set('role', filters.role)
-  if (filters.action !== 'All') params.set('action', filters.action)
-  if (filters.module !== 'All') params.set('module', filters.module)
-
-  return `${api.defaults.baseURL}/audit-logs/export?${params.toString()}`
+  const disposition = String(response.headers['content-disposition'] ?? '')
+  const fileName = disposition.match(/filename="?([^";]+)"?/i)?.[1]
+    ?? `nexus-audit-log.${format === 'excel' ? 'xls' : 'csv'}`
+  const url = URL.createObjectURL(response.data)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = fileName
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+  URL.revokeObjectURL(url)
 }
 
-export const fallbackAuditLogs: AuditLogResponse = {
-  pagination: { page: 1, limit: 10, total: 6, pages: 1 },
-  items: [
-    {
-      _id: 'audit-1',
-      user: 'Campus Admin',
-      role: 'Super Admin',
-      action: 'LOGIN',
-      module: 'Auth',
-      description: 'Super Admin signed in successfully',
-      ipAddress: '127.0.0.1',
-      browser: 'Chrome',
-      device: 'Desktop',
-      timestamp: '2026-06-23T09:30:00.000Z',
-    },
-    {
-      _id: 'audit-2',
-      user: 'Registrar Office',
-      role: 'Admin',
-      action: 'STUDENT_CREATE',
-      module: 'Students',
-      description: 'Created student record NX-2026-1042',
-      ipAddress: '127.0.0.1',
-      browser: 'Edge',
-      device: 'Desktop',
-      timestamp: '2026-06-23T08:58:00.000Z',
-    },
-    {
-      _id: 'audit-3',
-      user: 'Campus Admin',
-      role: 'Super Admin',
-      action: 'SETTINGS_CHANGE',
-      module: 'Settings',
-      description: 'Updated notification delivery preferences',
-      ipAddress: '127.0.0.1',
-      browser: 'Chrome',
-      device: 'Desktop',
-      timestamp: '2026-06-22T17:15:00.000Z',
-    },
-    {
-      _id: 'audit-4',
-      user: 'Reports Lead',
-      role: 'Admin',
-      action: 'REPORT_EXPORT',
-      module: 'Reports',
-      description: 'Exported attendance report as Excel',
-      ipAddress: '127.0.0.1',
-      browser: 'Firefox',
-      device: 'Desktop',
-      timestamp: '2026-06-22T14:45:00.000Z',
-    },
-    {
-      _id: 'audit-5',
-      user: 'Course Coordinator',
-      role: 'Admin',
-      action: 'COURSE_UPDATE',
-      module: 'Courses',
-      description: 'Updated course capacity for Data Structures',
-      ipAddress: '127.0.0.1',
-      browser: 'Safari',
-      device: 'Tablet',
-      timestamp: '2026-06-21T15:25:00.000Z',
-    },
-    {
-      _id: 'audit-6',
-      user: 'Campus Admin',
-      role: 'Super Admin',
-      action: 'LOGOUT',
-      module: 'Auth',
-      description: 'Super Admin signed out',
-      ipAddress: '127.0.0.1',
-      browser: 'Chrome',
-      device: 'Desktop',
-      timestamp: '2026-06-21T12:05:00.000Z',
-    },
-  ],
+export function getAuditLogErrorMessage(caught: unknown) {
+  if (axios.isAxiosError<{ message?: string }>(caught)) {
+    return caught.response?.data?.message ?? 'Audit log request failed'
+  }
+
+  return caught instanceof Error ? caught.message : 'Audit log request failed'
 }

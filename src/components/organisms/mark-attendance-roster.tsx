@@ -5,7 +5,13 @@ import { AttendanceStatusChip } from '@/components/molecules/attendance-status-c
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { AttendanceData, AttendanceStatus } from '@/hooks/use-attendance'
+import {
+  getAttendanceErrorMessage,
+  useMarkAttendance,
+  useUpdateAttendance,
+  type AttendanceData,
+  type AttendanceStatus,
+} from '@/hooks/use-attendance'
 import { cn } from '@/lib/utils'
 
 const statusOptions: Array<{ label: AttendanceStatus; icon: typeof Check }> = [
@@ -16,30 +22,77 @@ const statusOptions: Array<{ label: AttendanceStatus; icon: typeof Check }> = [
 ]
 
 export function MarkAttendanceRoster({
+  courseId,
   data,
+  date,
   isLoading,
 }: {
+  courseId: string
   data?: AttendanceData
+  date: string
   isLoading: boolean
 }) {
+  const markAttendance = useMarkAttendance()
+  const updateAttendance = useUpdateAttendance()
   const [statuses, setStatuses] = useState<Record<string, AttendanceStatus>>({})
+  const [error, setError] = useState('')
+
+  async function selectStatus(studentId: string, attendanceId: string, status: AttendanceStatus) {
+    setStatuses((value) => ({ ...value, [studentId]: status }))
+    setError('')
+
+    if (!courseId || courseId === 'All') {
+      setError('Select a course before marking attendance.')
+      return
+    }
+
+    try {
+      if (attendanceId) {
+        await updateAttendance.mutateAsync({
+          attendanceId,
+          payload: { status },
+        })
+      } else {
+        await markAttendance.mutateAsync({
+          studentId,
+          courseId,
+          date,
+          status,
+        })
+      }
+    } catch (caught) {
+      setError(getAttendanceErrorMessage(caught))
+    }
+  }
+
+  const roster = data?.markRoster ?? []
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Mark Attendance</CardTitle>
-        <CardDescription>Dummy roster controls for recording daily attendance status.</CardDescription>
+        <CardDescription>Record the selected course roster for the chosen date.</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <p className="mb-4 rounded-2xl bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+            {error}
+          </p>
+        )}
         {isLoading ? (
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, index) => (
               <Skeleton key={index} className="h-24 w-full" />
             ))}
           </div>
+        ) : roster.length === 0 ? (
+          <div className="rounded-[20px] border border-dashed border-border p-8 text-center">
+            <p className="text-sm font-bold text-foreground">No students found</p>
+            <p className="mt-1 text-sm text-muted-foreground">Adjust the selected course or department.</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {data?.markRoster.map((student) => {
+            {roster.map((student) => {
               const currentStatus = statuses[student.id] ?? student.status
 
               return (
@@ -63,9 +116,8 @@ export function MarkAttendanceRoster({
                           <Button
                             key={option.label}
                             className={cn(active && 'ring-2 ring-ring')}
-                            onClick={() =>
-                              setStatuses((value) => ({ ...value, [student.id]: option.label }))
-                            }
+                            disabled={markAttendance.isPending || updateAttendance.isPending}
+                            onClick={() => void selectStatus(student.id, student.attendanceId, option.label)}
                             size="sm"
                             type="button"
                             variant={active ? 'default' : 'glass'}

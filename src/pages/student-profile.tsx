@@ -7,21 +7,22 @@ import { StudentStatusBadge } from '@/components/molecules/student-status-badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useStudent } from '@/hooks/use-students'
+import { getStudentErrorMessage, useStudent } from '@/hooks/use-students'
 
 export function StudentProfilePage() {
   const { studentId } = useParams()
-  const { data: student, isLoading } = useStudent(studentId)
+  const { data: student, error, isError, isLoading } = useStudent(studentId)
 
   if (isLoading) {
     return <Skeleton className="h-[620px] w-full" />
   }
 
-  if (!student) {
+  if (isError || !student) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-lg font-bold text-foreground">Student not found</p>
+          <p className="text-lg font-bold text-foreground">{isError ? 'Unable to load student' : 'Student not found'}</p>
+          {isError && <p className="mt-2 text-sm text-muted-foreground">{getStudentErrorMessage(error)}</p>}
           <Button asChild className="mt-5">
             <Link to="/students">Return to Students</Link>
           </Button>

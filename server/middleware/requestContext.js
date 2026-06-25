@@ -1,4 +1,3 @@
-import { env } from '../config/env.js'
 import { User } from '../models/User.js'
 import { verifyAuthToken } from '../services/authTokenService.js'
 
@@ -22,17 +21,6 @@ export async function attachRequestContext(req, _res, next) {
       }
     }
 
-    if (!req.user && env.allowDemoAuth) {
-      const role = req.header('x-user-role') || 'Admin'
-
-      req.user = {
-        id: req.header('x-user-id') || 'demo-admin',
-        name: req.header('x-user-name') || 'Campus Admin',
-        email: 'admin@nexus.local',
-        role: adminRoles.has(role) ? role : 'Admin',
-      }
-    }
-
     next()
   } catch {
     req.user = undefined
@@ -52,6 +40,11 @@ export function requireAuthenticated(req, _res, next) {
 }
 
 export function requireAdmin(req, _res, next) {
+  if (!req.user) {
+    next(authError())
+    return
+  }
+
   if (!adminRoles.has(req.user?.role)) {
     const error = new Error('Admin access required')
     error.statusCode = 403
@@ -74,6 +67,11 @@ function getBearerToken(req) {
 }
 
 export function requireSuperAdmin(req, _res, next) {
+  if (!req.user) {
+    next(authError())
+    return
+  }
+
   if (req.user?.role !== 'Super Admin') {
     const error = new Error('Super Admin access required')
     error.statusCode = 403
@@ -82,4 +80,10 @@ export function requireSuperAdmin(req, _res, next) {
   }
 
   next()
+}
+
+function authError() {
+  const error = new Error('Authentication required')
+  error.statusCode = 401
+  return error
 }

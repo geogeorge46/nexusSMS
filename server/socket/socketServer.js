@@ -32,18 +32,6 @@ export function initializeSocketServer(httpServer) {
         }
       }
 
-      if (env.allowDemoAuth && !env.isProduction) {
-        const role = socket.handshake.auth?.role || socket.handshake.query?.role || 'Admin'
-        const userId = socket.handshake.auth?.userId || socket.handshake.query?.userId || 'demo-admin'
-
-        socket.data.user = {
-          id: userId,
-          role,
-        }
-        next()
-        return
-      }
-
       next(new Error('Authentication required'))
     } catch {
       next(new Error('Authentication required'))
@@ -63,12 +51,19 @@ export function initializeSocketServer(httpServer) {
   return io
 }
 
-export function emitNotification(notification) {
+export function emitNotificationEvent(event, notification, payload = notification) {
   if (!io) return
 
-  io.to(`role:${notification.recipient.role}`).emit('notification:new', notification)
-
   if (notification.recipient.userId) {
-    io.to(`user:${notification.recipient.userId}`).emit('notification:new', notification)
+    io.to(`user:${notification.recipient.userId}`).emit(event, payload)
+    return
   }
+
+  io.to(`role:${notification.recipient.role}`).emit(event, payload)
+}
+
+export function emitUserNotificationEvent(event, user, payload) {
+  if (!io) return
+
+  io.to(`role:${user.role}`).to(`user:${user.id}`).emit(event, payload)
 }

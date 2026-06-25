@@ -1,10 +1,12 @@
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Pencil, Plus, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 
 import { GradeStatusChip } from '@/components/molecules/grade-status-chip'
+import { GradeForm } from '@/components/organisms/grade-form'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { GradeData } from '@/hooks/use-grades'
+import { getGradeErrorMessage, useDeleteGrade, type GradeData, type GradeRecord } from '@/hooks/use-grades'
 
 const statuses = ['All', 'Published', 'Review', 'Draft']
 const types = ['All', 'Assignment', 'Exam', 'Project', 'Quiz']
@@ -14,6 +16,9 @@ export function GradeTable({ data, isLoading }: { data?: GradeData; isLoading: b
   const [status, setStatus] = useState('All')
   const [type, setType] = useState('All')
   const deferredQuery = useDeferredValue(query)
+  const [editing, setEditing] = useState<GradeRecord | undefined>()
+  const [formOpen, setFormOpen] = useState(false)
+  const deleteGrade = useDeleteGrade()
 
   const records = useMemo(() => {
     const normalized = deferredQuery.trim().toLowerCase()
@@ -33,9 +38,9 @@ export function GradeTable({ data, isLoading }: { data?: GradeData; isLoading: b
   return (
     <Card>
       <CardHeader className="gap-4">
-        <div>
-          <CardTitle>Grade Table</CardTitle>
-          <CardDescription>Search and filter GPA, CGPA, assignment, exam, and project grades.</CardDescription>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div><CardTitle>Grade Table</CardTitle><CardDescription>Search and filter GPA, CGPA, assignment, exam, and project grades.</CardDescription></div>
+          <Button onClick={() => { setEditing(undefined); setFormOpen(true) }}><Plus />Add Grade</Button>
         </div>
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
           <label className="relative">
@@ -65,7 +70,7 @@ export function GradeTable({ data, isLoading }: { data?: GradeData; isLoading: b
             {records.map((record) => (
               <div
                 key={record.id}
-                className="grid gap-3 border-b border-border/70 p-4 last:border-b-0 xl:grid-cols-[1fr_120px_88px_88px_88px_120px]"
+                className="grid gap-3 border-b border-border/70 p-4 last:border-b-0 xl:grid-cols-[1fr_110px_80px_80px_80px_110px_80px]"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-foreground">{record.student}</p>
@@ -78,6 +83,10 @@ export function GradeTable({ data, isLoading }: { data?: GradeData; isLoading: b
                 <div className="self-center">
                   <GradeStatusChip status={record.status} />
                 </div>
+                <div className="flex self-center">
+                  <Button aria-label="Edit grade" size="icon" variant="ghost" onClick={() => { setEditing(record); setFormOpen(true) }}><Pencil /></Button>
+                  <Button aria-label="Delete grade" disabled={deleteGrade.isPending} size="icon" variant="ghost" onClick={() => { if (window.confirm(`Delete ${record.type} grade for ${record.student}?`)) void deleteGrade.mutateAsync(record.id) }}><Trash2 /></Button>
+                </div>
               </div>
             ))}
             {records.length === 0 && (
@@ -87,6 +96,8 @@ export function GradeTable({ data, isLoading }: { data?: GradeData; isLoading: b
             )}
           </div>
         )}
+        {deleteGrade.isError && <p className="mt-3 text-sm font-semibold text-rose-600">{getGradeErrorMessage(deleteGrade.error)}</p>}
+        <GradeForm grade={editing} open={formOpen} onOpenChange={setFormOpen} />
       </CardContent>
     </Card>
   )

@@ -7,21 +7,22 @@ import { PageHeader } from '@/components/molecules/page-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCourse } from '@/hooks/use-courses'
+import { getCourseErrorMessage, useCourse } from '@/hooks/use-courses'
 
 export function CourseDetailsPage() {
   const { courseId } = useParams()
-  const { data: course, isLoading } = useCourse(courseId)
+  const { data: course, error, isError, isLoading } = useCourse(courseId)
 
   if (isLoading) {
     return <Skeleton className="h-[640px] w-full" />
   }
 
-  if (!course) {
+  if (isError || !course) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-lg font-bold text-foreground">Course not found</p>
+          <p className="text-lg font-bold text-foreground">{isError ? 'Unable to load course' : 'Course not found'}</p>
+          {isError && <p className="mt-2 text-sm text-muted-foreground">{getCourseErrorMessage(error)}</p>}
           <Button asChild className="mt-5">
             <Link to="/courses">Return to Courses</Link>
           </Button>
@@ -68,7 +69,7 @@ export function CourseDetailsPage() {
         <DetailMetric icon={GraduationCap} label="Credits" value={String(course.credits)} />
         <DetailMetric icon={BookOpen} label="Enrollment" value={String(course.enrolled)} />
         <DetailMetric icon={UserRoundPen} label="Faculty" value={course.faculty} />
-        <DetailMetric icon={CalendarDays} label="Term" value={course.term} />
+        <DetailMetric icon={CalendarDays} label="Semester" value={course.semester} />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -89,7 +90,7 @@ export function CourseDetailsPage() {
             <CardTitle>Enrollment Health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <SnapshotBar label="Capacity Used" value={Math.round((course.enrolled / course.capacity) * 100)} />
+            <SnapshotBar label="Capacity Used" value={Math.round((course.enrolled / Math.max(course.capacity, 1)) * 100)} />
             <SnapshotBar label="Credit Weight" value={Math.min(100, course.credits * 22)} />
             <SnapshotBar label="Catalog Readiness" value={course.status === 'Active' ? 96 : 72} />
           </CardContent>

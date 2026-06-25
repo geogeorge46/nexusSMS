@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-  fallbackAuditLogs,
+  downloadAuditLogExport,
   fetchAuditLogs,
-  getAuditExportUrl,
+  getAuditLogErrorMessage,
   type AuditFilters,
   type AuditLog,
 } from '@/lib/audit-logs'
@@ -25,6 +25,12 @@ const actions = [
   'COURSE_CREATE',
   'COURSE_UPDATE',
   'COURSE_DELETE',
+  'ATTENDANCE_MARK',
+  'ATTENDANCE_UPDATE',
+  'ATTENDANCE_DELETE',
+  'GRADE_CREATE',
+  'GRADE_UPDATE',
+  'GRADE_DELETE',
   'SETTINGS_CHANGE',
   'REPORT_EXPORT',
   'DOCUMENT_UPLOAD',
@@ -32,7 +38,8 @@ const actions = [
   'NOTIFICATION_CREATE',
   'NOTIFICATION_DELETE',
 ]
-const modules = ['All', 'Auth', 'Students', 'Courses', 'Settings', 'Reports', 'Documents', 'Notifications']
+const modules = ['All', 'Auth', 'Students', 'Courses', 'Attendance', 'Grades', 'Settings', 'Reports', 'Documents', 'Notifications']
+const emptyAuditData = { items: [], pagination: { page: 1, limit: 10, total: 0, pages: 1 } }
 
 export function AuditLogWorkspace() {
   const [filters, setFilters] = useState<AuditFilters>({
@@ -40,8 +47,12 @@ export function AuditLogWorkspace() {
     role: 'All',
     action: 'All',
     module: 'All',
+    dateFrom: '',
+    dateTo: '',
     page: 1,
   })
+  const [exporting, setExporting] = useState<'csv' | 'excel' | null>(null)
+  const [exportError, setExportError] = useState('')
 
   const auditQuery = useQuery({
     queryKey: ['audit-logs', filters],
@@ -49,7 +60,7 @@ export function AuditLogWorkspace() {
     retry: 1,
   })
 
-  const data = auditQuery.data ?? fallbackAuditLogs
+  const data = auditQuery.data ?? emptyAuditData
   const summary = useMemo(
     () => ({
       total: data.pagination.total,
@@ -62,6 +73,18 @@ export function AuditLogWorkspace() {
 
   function updateFilters(next: Partial<AuditFilters>) {
     setFilters((current) => ({ ...current, ...next, page: next.page ?? 1 }))
+  }
+
+  async function runExport(format: 'csv' | 'excel') {
+    setExporting(format)
+    setExportError('')
+    try {
+      await downloadAuditLogExport(filters, format)
+    } catch (error) {
+      setExportError(getAuditLogErrorMessage(error))
+    } finally {
+      setExporting(null)
+    }
   }
 
   return (
@@ -82,20 +105,27 @@ export function AuditLogWorkspace() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button asChild type="button" variant="glass">
-              <a href={getAuditExportUrl(filters, 'csv')}>
-                <Download />
-                CSV
-              </a>
+            <Button disabled={Boolean(exporting)} onClick={() => void runExport('csv')} type="button" variant="glass">
+              <Download />
+              {exporting === 'csv' ? 'Exporting...' : 'CSV'}
             </Button>
-            <Button asChild type="button" variant="glass">
-              <a href={getAuditExportUrl(filters, 'excel')}>
-                <FileSpreadsheet />
-                Excel
-              </a>
+            <Button disabled={Boolean(exporting)} onClick={() => void runExport('excel')} type="button" variant="glass">
+              <FileSpreadsheet />
+              {exporting === 'excel' ? 'Exporting...' : 'Excel'}
             </Button>
           </div>
         </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <DateFilter label="From date" max={filters.dateTo || undefined} onChange={(dateFrom) => updateFilters({ dateFrom })} value={filters.dateFrom} />
+          <DateFilter label="To date" min={filters.dateFrom || undefined} onChange={(dateTo) => updateFilters({ dateTo })} value={filters.dateTo} />
+        </div>
+
+        {exportError && (
+          <p className="mt-4 rounded-[18px] bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+            {exportError}
+          </p>
+        )}
 
         <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_220px_180px]">
           <label className="relative">
@@ -133,6 +163,10 @@ export function AuditLogWorkspace() {
               {Array.from({ length: 8 }).map((_, index) => (
                 <Skeleton className="h-16" key={index} />
               ))}
+            </div>
+          ) : auditQuery.isError ? (
+            <div className="p-8 text-center text-sm font-semibold text-rose-700 dark:text-rose-300">
+              {getAuditLogErrorMessage(auditQuery.error)}
             </div>
           ) : data.items.length === 0 ? (
             <div className="p-8 text-center text-sm font-semibold text-muted-foreground">
@@ -184,7 +218,7 @@ function AuditLogRow({ log }: { log: AuditLog }) {
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground">{log.browser}</p>
-        <p className="mt-1 text-xs font-semibold text-muted-foreground">{log.device}</p>
+        <p className="mt-1 text-xs font-semibold text-muted-foreground">{log.device} · {log.ipAddress || 'Unknown IP'}</p>
       </div>
       <p className="text-sm leading-6 text-muted-foreground">{log.description}</p>
       <div className="xl:text-right">
@@ -194,6 +228,22 @@ function AuditLogRow({ log }: { log: AuditLog }) {
         </p>
       </div>
     </article>
+  )
+}
+
+function DateFilter({ label, max, min, onChange, value }: { label: string; max?: string; min?: string; onChange: (value: string) => void; value: string }) {
+  return (
+    <label className="space-y-2">
+      <span className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</span>
+      <input
+        className="h-10 w-full rounded-2xl border border-border bg-background/75 px-3 text-sm font-semibold text-foreground outline-none ring-ring focus:ring-2"
+        max={max}
+        min={min}
+        onChange={(event) => onChange(event.target.value)}
+        type="date"
+        value={value}
+      />
+    </label>
   )
 }
 

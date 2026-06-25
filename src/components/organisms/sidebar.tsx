@@ -5,12 +5,25 @@ import { NavLink } from '@/components/molecules/nav-link'
 import { GlassCard } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { primaryNavigation, secondaryNavigation } from '@/config/navigation'
+import { useAuth } from '@/hooks/use-auth'
+import { useStudentCount } from '@/hooks/use-students'
 
 type SidebarProps = {
   onNavigate?: () => void
 }
 
 export function Sidebar({ onNavigate }: SidebarProps) {
+  const { user } = useAuth()
+  const studentCount = useStudentCount()
+  const navigation = primaryNavigation.map((item) =>
+    item.href === '/students' && typeof studentCount.data === 'number'
+      ? { ...item, badge: formatCount(studentCount.data) }
+      : item,
+  )
+  const visibleSecondaryNavigation = secondaryNavigation.filter(
+    (item) => !item.superAdminOnly || user?.role === 'Super Admin',
+  )
+
   return (
     <aside className="flex h-full flex-col gap-5">
       <div className="px-2 pt-1">
@@ -18,7 +31,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2" aria-label="Primary navigation">
-        {primaryNavigation.map((item, index) => (
+        {navigation.map((item, index) => (
           <motion.div
             key={item.href}
             initial={{ opacity: 0, x: -8 }}
@@ -33,7 +46,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       <Separator />
 
       <nav className="flex flex-col gap-2" aria-label="Secondary navigation">
-        {secondaryNavigation.map((item) => (
+        {visibleSecondaryNavigation.map((item) => (
           <NavLink key={item.href} item={item} onClick={onNavigate} />
         ))}
       </nav>
@@ -51,4 +64,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
       </GlassCard>
     </aside>
   )
+}
+
+function formatCount(count: number) {
+  return new Intl.NumberFormat('en-US', {
+    notation: count >= 1000 ? 'compact' : 'standard',
+    maximumFractionDigits: 1,
+  }).format(count)
 }

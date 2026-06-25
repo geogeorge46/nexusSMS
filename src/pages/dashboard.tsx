@@ -2,9 +2,11 @@ import { motion } from 'framer-motion'
 import {
   Activity,
   BarChart3,
+  Bell,
   BookOpen,
   CalendarCheck,
   GraduationCap,
+  FileText,
   Plus,
   Sparkles,
   TrendingUp,
@@ -16,6 +18,8 @@ import { DashboardWidgetGrid } from '@/components/organisms/dashboard-widget-gri
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Card,
+  CardContent,
   GlassCard,
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -29,6 +33,8 @@ const statIcons: Record<string, LucideIcon> = {
   courses: BookOpen,
   attendance: CalendarCheck,
   gpa: GraduationCap,
+  documents: FileText,
+  notifications: Bell,
 }
 
 const statToneClass: Record<StatTone, string> = {
@@ -44,7 +50,11 @@ const reveal = {
 }
 
 export function DashboardPage() {
-  const { data, isLoading } = useDashboardData()
+  const { data, error, isError, isLoading } = useDashboardData()
+
+  if (isError) {
+    return <DashboardError error={error} />
+  }
 
   return (
     <motion.div
@@ -57,6 +67,19 @@ export function DashboardPage() {
       <StatsGrid data={data} isLoading={isLoading} />
       <DashboardWidgetGrid data={data} isLoading={isLoading} />
     </motion.div>
+  )
+}
+
+function DashboardError({ error }: { error: unknown }) {
+  const message = error instanceof Error ? error.message : 'Dashboard summary could not be loaded.'
+
+  return (
+    <Card>
+      <CardContent className="p-8 text-center">
+        <p className="text-lg font-bold text-foreground">Unable to load dashboard</p>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -121,8 +144,14 @@ function DashboardHero({
                 <p className="text-sm font-semibold text-muted-foreground">{data?.profile.role}</p>
                 <p className="mt-2 text-2xl font-bold text-foreground">{data?.profile.campus}</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
-                  <MiniSignal label="Retention" value="97%" />
-                  <MiniSignal label="On Track" value="91%" />
+                  <MiniSignal
+                    label="Attendance"
+                    value={data?.stats.find((stat) => stat.label === 'Attendance')?.value ?? '0%'}
+                  />
+                  <MiniSignal
+                    label="Average GPA"
+                    value={data?.stats.find((stat) => stat.label === 'Average GPA')?.value ?? '0.00'}
+                  />
                 </div>
               </>
             )}

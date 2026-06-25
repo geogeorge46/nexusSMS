@@ -25,6 +25,14 @@ services:
         sync: false
       - key: MONGODB_URI
         sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PASSWORD_PEPPER
+        sync: false
+      - key: ALLOW_DEMO_AUTH
+        value: "false"
+      - key: MONGO_MAX_POOL_SIZE
+        value: "20"
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

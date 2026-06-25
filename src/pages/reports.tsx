@@ -1,14 +1,65 @@
-import { Clock, FileText, Send, ShieldCheck } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, Send, ShieldCheck } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 
-import { ExportActions } from '@/components/molecules/export-actions'
 import { PageHeader } from '@/components/molecules/page-header'
 import { ReportsTable } from '@/components/organisms/reports-table'
+import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useInsights } from '@/hooks/use-insights'
+import {
+  downloadReport,
+  fetchReport,
+  getReportErrorMessage,
+  type ReportFilters,
+  type ReportFormat,
+  type ReportType,
+} from '@/lib/reports-api'
+
+const initialFilters: ReportFilters = {
+  dateFrom: '',
+  dateTo: '',
+  department: 'All',
+  course: 'All',
+  semester: 'All',
+  student: 'All',
+  status: 'All',
+  page: 1,
+}
+const metricIcons = [FileText, ShieldCheck, Send, FileSpreadsheet]
 
 export function ReportsPage() {
-  const { data, isLoading } = useInsights()
+  const [type, setType] = useState<ReportType>('students')
+  const [filters, setFilters] = useState<ReportFilters>(initialFilters)
+  const [exporting, setExporting] = useState<ReportFormat | null>(null)
+  const [exportError, setExportError] = useState('')
+  const reportQuery = useQuery({
+    queryKey: ['reports', type, filters],
+    queryFn: () => fetchReport(type, filters),
+    retry: 1,
+  })
+
+  function updateFilters(next: Partial<ReportFilters>) {
+    setFilters((current) => ({ ...current, ...next, page: next.page ?? 1 }))
+  }
+
+  function changeType(nextType: ReportType) {
+    setType(nextType)
+    setFilters(initialFilters)
+    setExportError('')
+  }
+
+  async function runExport(format: ReportFormat) {
+    setExporting(format)
+    setExportError('')
+    try {
+      await downloadReport(type, format, filters)
+    } catch (error) {
+      setExportError(getReportErrorMessage(error))
+    } finally {
+      setExporting(null)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -16,36 +67,63 @@ export function ReportsPage() {
         eyebrow="Reports"
         title="Reports Center"
         description="Generate, review, and export student management reports for enrollment, attendance, grades, and course planning."
-        actions={<ExportActions filename="nexus-reports" rows={data?.reports ?? []} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button disabled={Boolean(exporting)} onClick={() => void runExport('pdf')} type="button" variant="glass">
+              <FileText />
+              {exporting === 'pdf' ? 'Exporting...' : 'PDF Export'}
+            </Button>
+            <Button disabled={Boolean(exporting)} onClick={() => void runExport('excel')} type="button">
+              <FileSpreadsheet />
+              {exporting === 'excel' ? 'Exporting...' : 'Excel Export'}
+            </Button>
+            <Button disabled={Boolean(exporting)} onClick={() => void runExport('csv')} type="button" variant="glass">
+              <Download />
+              {exporting === 'csv' ? 'Exporting...' : 'CSV'}
+            </Button>
+          </div>
+        }
       />
 
+      {exportError && (
+        <p className="rounded-[18px] bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300">
+          {exportError}
+        </p>
+      )}
+
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {isLoading || !data ? (
+        {reportQuery.isLoading ? (
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-28" />)
+        ) : reportQuery.data ? (
+          reportQuery.data.metrics.map((metric, index) => (
+            <SummaryCard
+              icon={metricIcons[index] ?? FileText}
+              key={metric.label}
+              label={metric.label}
+              value={String(metric.value)}
+            />
+          ))
         ) : (
-          <>
-            <SummaryCard icon={FileText} label="Generated" value={String(data.reportSummary.generated)} />
-            <SummaryCard icon={Clock} label="Scheduled" value={String(data.reportSummary.scheduled)} />
-            <SummaryCard icon={ShieldCheck} label="In Review" value={String(data.reportSummary.review)} />
-            <SummaryCard icon={Send} label="Exports" value={String(data.reportSummary.exports)} />
-          </>
+          ['Records', 'Status', 'Coverage', 'Exports'].map((label, index) => (
+            <SummaryCard icon={metricIcons[index] ?? FileText} key={label} label={label} value="--" />
+          ))
         )}
       </section>
 
-      <ReportsTable data={data} isLoading={isLoading} />
+      <ReportsTable
+        data={reportQuery.data}
+        errorMessage={reportQuery.isError ? getReportErrorMessage(reportQuery.error) : ''}
+        filters={filters}
+        isLoading={reportQuery.isLoading}
+        onFiltersChange={updateFilters}
+        onTypeChange={changeType}
+        type={type}
+      />
     </div>
   )
 }
 
-function SummaryCard({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof FileText
-  label: string
-  value: string
-}) {
+function SummaryCard({ icon: Icon, label, value }: { icon: typeof FileText; label: string; value: string }) {
   return (
     <GlassCard className="flex items-center justify-between gap-4 p-5">
       <div>

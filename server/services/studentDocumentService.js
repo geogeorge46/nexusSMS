@@ -1,82 +1,78 @@
+import mongoose from 'mongoose'
+
+import { Student } from '../models/Student.js'
 import { documentCategories, StudentDocument } from '../models/StudentDocument.js'
 import { scanDocumentBuffer } from './documentScanService.js'
-import {
-  buildDownloadUrl,
-  deleteDocumentFromCloudinary,
-  uploadDocumentToCloudinary,
-} from './documentStorageService.js'
+import { buildDownloadUrl, deleteDocumentFromCloudinary, uploadDocumentToCloudinary } from './documentStorageService.js'
 
 export async function listDocuments(filters = {}) {
   const query = {}
 
-  if (filters.category && filters.category !== 'All') {
-    query.category = filters.category
-  }
-
+  if (filters.category && filters.category !== 'All') query.documentType = filters.category
+  if (filters.studentId) query.studentId = await resolveStudentId(filters.studentId)
   if (filters.search) {
     const search = new RegExp(escapeRegex(filters.search), 'i')
-    query.$or = [
-      { title: search },
-      { originalName: search },
-      { studentName: search },
-      { registerNumber: search },
-    ]
+    query.$or = [{ title: search }, { fileName: search }, { studentName: search }, { registerNumber: search }]
   }
 
-  const documents = await StudentDocument.find(query).sort({ createdAt: -1 }).lean()
-  const grouped = documentCategories.map((category) => ({
-    category,
-    count: documents.filter((document) => document.category === category).length,
-  }))
+  const records = await StudentDocument.find(query).sort({ uploadedAt: -1 }).lean()
+  const documents = records.map(serializeDocument)
 
   return {
     documents,
-    grouped,
+    grouped: documentCategories.map((category) => ({
+      category,
+      count: documents.filter((document) => document.documentType === category).length,
+    })),
     total: documents.length,
   }
 }
 
 export async function createDocuments(files, payload) {
-  if (!files?.length) {
-    const error = new Error('At least one document is required')
-    error.statusCode = 400
-    throw error
-  }
+  if (!files?.length) throw httpError(400, 'At least one document is required')
 
+  const student = await Student.findById(await resolveStudentId(payload.studentId))
+    .select('name registerNumber')
+    .lean()
   const createdDocuments = []
 
   for (const file of files) {
     const scan = await scanDocumentBuffer(file)
+    if (scan.status !== 'passed') throw httpError(422, scan.message)
 
-    if (scan.status !== 'passed') {
-      const error = new Error(scan.message)
-      error.statusCode = 422
-      throw error
+    const storagePayload = {
+      category: payload.category,
+      studentName: student.name,
+      registerNumber: student.registerNumber,
     }
-
-    const uploaded = await uploadDocumentToCloudinary(file, payload)
+    const uploaded = await uploadDocumentToCloudinary(file, storagePayload)
     const downloadUrl = buildDownloadUrl(uploaded.publicId, uploaded.resourceType, file.originalname)
 
-    const document = await StudentDocument.create({
-      student: payload.studentId || undefined,
-      studentName: payload.studentName,
-      registerNumber: payload.registerNumber,
-      category: normalizeCategory(payload.category),
-      title: payload.title || file.originalname,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      cloudinaryPublicId: uploaded.publicId,
-      cloudinaryAssetId: uploaded.assetId,
-      resourceType: uploaded.resourceType,
-      secureUrl: uploaded.secureUrl,
-      downloadUrl,
-      checksum: scan.checksum,
-      scanStatus: scan.status,
-      uploadedBy: payload.uploadedBy || 'Nexus Admin',
-    })
-
-    createdDocuments.push(document.toObject())
+    try {
+      const document = await StudentDocument.create({
+        studentId: student._id,
+        studentName: student.name,
+        registerNumber: student.registerNumber,
+        documentType: normalizeCategory(payload.category),
+        title: payload.title?.trim() || file.originalname,
+        fileName: file.originalname,
+        fileUrl: uploaded.secureUrl,
+        cloudinaryPublicId: uploaded.publicId,
+        cloudinaryAssetId: uploaded.assetId,
+        resourceType: uploaded.resourceType,
+        downloadUrl,
+        mimeType: file.mimetype,
+        fileSize: file.size,
+        checksum: scan.checksum,
+        scanStatus: scan.status,
+        uploadedBy: payload.user?.name ?? 'Nexus Admin',
+        uploadedAt: new Date(),
+      })
+      createdDocuments.push(serializeDocument(document.toObject()))
+    } catch (error) {
+      await deleteDocumentFromCloudinary(uploaded.publicId, uploaded.resourceType)
+      throw error
+    }
   }
 
   return createdDocuments
@@ -84,42 +80,65 @@ export async function createDocuments(files, payload) {
 
 export async function deleteDocument(documentId) {
   const document = await StudentDocument.findById(documentId)
-
-  if (!document) {
-    const error = new Error('Document not found')
-    error.statusCode = 404
-    throw error
-  }
+  if (!document) throw httpError(404, 'Document not found')
 
   await deleteDocumentFromCloudinary(document.cloudinaryPublicId, document.resourceType)
   await document.deleteOne()
-
   return { id: documentId }
 }
 
 export async function getDocumentDownload(documentId) {
   const document = await StudentDocument.findById(documentId).lean()
+  if (!document) throw httpError(404, 'Document not found')
+  return { downloadUrl: document.downloadUrl, originalName: document.fileName }
+}
 
-  if (!document) {
-    const error = new Error('Document not found')
-    error.statusCode = 404
-    throw error
+async function resolveStudentId(value) {
+  if (!value) throw httpError(400, 'Student is required')
+  if (mongoose.Types.ObjectId.isValid(value)) {
+    if (await Student.exists({ _id: value })) return value
+  } else {
+    const student = await Student.findOne({ registerNumber: value }).select('_id').lean()
+    if (student) return student._id
   }
+  throw httpError(404, 'Student not found')
+}
 
+function serializeDocument(document) {
   return {
+    _id: document._id.toString(),
+    studentId: document.studentId?.toString() ?? '',
+    documentType: document.documentType,
+    category: document.documentType,
+    title: document.title,
+    fileName: document.fileName,
+    originalName: document.fileName,
+    fileUrl: document.fileUrl,
+    secureUrl: document.fileUrl,
+    cloudinaryPublicId: document.cloudinaryPublicId,
+    mimeType: document.mimeType,
+    fileSize: document.fileSize,
+    size: document.fileSize,
+    uploadedBy: document.uploadedBy,
+    uploadedAt: document.uploadedAt,
+    createdAt: document.uploadedAt,
+    studentName: document.studentName,
+    registerNumber: document.registerNumber,
     downloadUrl: document.downloadUrl,
-    originalName: document.originalName,
+    scanStatus: document.scanStatus,
   }
 }
 
 function normalizeCategory(category) {
-  if (documentCategories.includes(category)) {
-    return category
-  }
-
-  return 'Other'
+  return documentCategories.includes(category) ? category : 'Other'
 }
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function httpError(statusCode, message) {
+  const error = new Error(message)
+  error.statusCode = statusCode
+  return error
 }

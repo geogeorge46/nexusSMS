@@ -22,7 +22,7 @@ export function StudentImportPage() {
         }
       />
 
-      {isLoading ? <Skeleton className="h-[620px] w-full" /> : <StudentImportWorkflow existingStudents={data ?? []} />}
+      {isLoading ? <Skeleton className="h-[620px] w-full" /> : <StudentImportWorkflow existingStudents={data?.items ?? []} />}
     </div>
   )
 }

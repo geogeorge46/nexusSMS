@@ -10,7 +10,7 @@ export function AddCoursePage() {
       <PageHeader
         eyebrow="Course Management"
         title="Add Course"
-        description="Create a new dummy course record with faculty, credits, capacity, schedule, and status metadata."
+        description="Create a new course record with faculty, credits, capacity, schedule, and status metadata."
         actions={
           <Button asChild type="button" variant="glass">
             <Link to="/courses">Back to List</Link>

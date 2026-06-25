@@ -127,4 +127,4 @@ Endpoints:
 - `GET /api/audit-logs/export?format=csv`
 - `GET /api/audit-logs/export?format=excel`
 
-The demo request context uses `x-user-id`, `x-user-name`, and `x-user-role` headers. Replace `server/middleware/requestContext.js` with JWT/session verification before production deployment.
+Protected HTTP and Socket.io requests require a valid JWT for an active Admin or Super Admin account.

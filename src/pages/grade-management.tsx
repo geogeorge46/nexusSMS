@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useGrades } from '@/hooks/use-grades'
 
 export function GradeManagementPage() {
-  const { data, isLoading } = useGrades()
+  const { data, isLoading, isError, error } = useGrades()
 
   return (
     <div className="space-y-6">
@@ -17,6 +17,8 @@ export function GradeManagementPage() {
         title="Grades"
         description="Track assignments, exams, GPA, CGPA, performance trends, and academic analytics from one responsive workspace."
       />
+
+      {isError && <div className="rounded-[20px] border border-rose-500/30 bg-rose-500/10 p-4 text-sm font-semibold text-rose-700">{error instanceof Error ? error.message : 'Unable to load grades.'}</div>}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         {isLoading || !data ? (

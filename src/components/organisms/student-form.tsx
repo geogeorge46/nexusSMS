@@ -1,9 +1,15 @@
 import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import type { Student } from '@/hooks/use-students'
+import {
+  getStudentErrorMessage,
+  useCreateStudent,
+  useUpdateStudent,
+  type Student,
+  type StudentPayload,
+} from '@/hooks/use-students'
 
 type StudentFormValues = Pick<
   Student,
@@ -29,9 +35,18 @@ export function StudentForm({
   mode: 'add' | 'edit'
   student?: Student
 }) {
+  const navigate = useNavigate()
+  const createStudent = useCreateStudent()
+  const updateStudent = useUpdateStudent(student?.id)
+  const mutation = mode === 'add' ? createStudent : updateStudent
   const { register, handleSubmit } = useForm<StudentFormValues>({
     defaultValues: student ?? emptyStudent,
   })
+
+  async function onSubmit(values: StudentFormValues) {
+    const savedStudent = await mutation.mutateAsync(values as StudentPayload)
+    navigate(`/students/${savedStudent.id}`, { replace: true })
+  }
 
   return (
     <Card>
@@ -40,7 +55,7 @@ export function StudentForm({
         <CardDescription>Dummy form scaffold for the future student workflow.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form className="grid gap-5 lg:grid-cols-2" onSubmit={handleSubmit(() => undefined)}>
+        <form className="grid gap-5 lg:grid-cols-2" onSubmit={(event) => void handleSubmit(onSubmit)(event)}>
           <Field label="Full Name" registration={register('name')} />
           <Field label="Email" registration={register('email')} type="email" />
           <Field label="Program" registration={register('program')} />
@@ -56,8 +71,15 @@ export function StudentForm({
               {...register('address')}
             />
           </label>
+          {mutation.isError && (
+            <p className="rounded-2xl bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300 lg:col-span-2">
+              {getStudentErrorMessage(mutation.error)}
+            </p>
+          )}
           <div className="flex flex-wrap gap-3 lg:col-span-2">
-            <Button type="submit">{mode === 'add' ? 'Create Student' : 'Save Changes'}</Button>
+            <Button disabled={mutation.isPending} type="submit">
+              {mutation.isPending ? 'Saving...' : mode === 'add' ? 'Create Student' : 'Save Changes'}
+            </Button>
             <Button asChild type="button" variant="glass">
               <Link to="/students">Cancel</Link>
             </Button>

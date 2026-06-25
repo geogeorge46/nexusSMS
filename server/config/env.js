@@ -15,12 +15,21 @@ export const env = {
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   passwordPepper: process.env.PASSWORD_PEPPER ?? '',
-  allowDemoAuth: process.env.ALLOW_DEMO_AUTH === 'true',
   isProduction: process.env.NODE_ENV === 'production',
 }
 
 export function validateRuntimeEnv() {
-  const required = ['MONGODB_URI', 'JWT_SECRET']
+  const required = env.isProduction
+    ? [
+        'MONGODB_URI',
+        'JWT_SECRET',
+        'PASSWORD_PEPPER',
+        'CLIENT_ORIGIN',
+        'CLOUDINARY_CLOUD_NAME',
+        'CLOUDINARY_API_KEY',
+        'CLOUDINARY_API_SECRET',
+      ]
+    : ['MONGODB_URI', 'JWT_SECRET']
   const missing = required.filter((key) => !process.env[key])
 
   if (missing.length > 0) {
@@ -29,5 +38,9 @@ export function validateRuntimeEnv() {
 
   if (env.isProduction && env.jwtSecret.length < 32) {
     throw new Error('JWT_SECRET must be at least 32 characters in production')
+  }
+
+  if (env.isProduction && env.passwordPepper.length < 32) {
+    throw new Error('PASSWORD_PEPPER must be at least 32 characters in production')
   }
 }

@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ScrollText,
   UsersRound,
+  UserCog,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -18,11 +19,12 @@ export type NavItem = {
   href: string
   icon: LucideIcon
   badge?: string
+  superAdminOnly?: boolean
 }
 
 export const primaryNavigation: NavItem[] = [
   { title: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { title: 'Students', href: '/students', icon: UsersRound, badge: '2.8k' },
+  { title: 'Students', href: '/students', icon: UsersRound },
   { title: 'Documents', href: '/documents', icon: FileArchive },
   { title: 'Courses', href: '/courses', icon: BookOpen },
   { title: 'Attendance', href: '/attendance', icon: CalendarDays },
@@ -31,6 +33,7 @@ export const primaryNavigation: NavItem[] = [
 ]
 
 export const secondaryNavigation: NavItem[] = [
+  { title: 'Admin Management', href: '/admins', icon: UserCog, superAdminOnly: true },
   { title: 'Audit Logs', href: '/audit-logs', icon: ScrollText },
   { title: 'Governance', href: '/governance', icon: ShieldCheck },
   { title: 'Settings', href: '/settings', icon: Settings },

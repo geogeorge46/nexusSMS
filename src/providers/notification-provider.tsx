@@ -4,13 +4,12 @@ import { io, type Socket } from 'socket.io-client'
 
 import {
   deleteNotification,
-  fallbackNotifications,
   fetchNotifications,
+  getNotificationErrorMessage,
   markAllNotificationsRead,
   markNotificationRead,
   type NexusNotification,
 } from '@/lib/notifications'
-import { getAuthToken, getStoredAuthUser } from '@/lib/auth-api'
 import { disconnectNotificationSocket, setNotificationSocket } from '@/lib/notification-socket'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -28,6 +27,8 @@ type NotificationContextValue = {
   pages: number
   search: string
   isLoading: boolean
+  errorMessage: string
+  actionPending: boolean
   toasts: Toast[]
   setPage: (page: number) => void
   setSearch: (search: string) => void
@@ -38,6 +39,11 @@ type NotificationContextValue = {
 }
 
 const NotificationContext = createContext<NotificationContextValue | null>(null)
+const emptyNotificationData = {
+  items: [],
+  unreadCount: 0,
+  pagination: { page: 1, limit: 8, total: 0, pages: 1 },
+}
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -53,7 +59,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     retry: 1,
   })
 
-  const data = notificationsQuery.data ?? fallbackNotifications
+  const data = notificationsQuery.data ?? emptyNotificationData
 
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
@@ -96,7 +102,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!token) return undefined
 
-    createNotificationSocket(queryClient, pushToast)
+    createNotificationSocket(token, queryClient, pushToast)
 
     return () => {
       disconnectNotificationSocket()
@@ -111,6 +117,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       pages: data.pagination.pages,
       search,
       isLoading: notificationsQuery.isLoading,
+      errorMessage: notificationsQuery.error
+        ? getNotificationErrorMessage(notificationsQuery.error)
+        : markReadMutation.error || markAllMutation.error || deleteMutation.error
+          ? getNotificationErrorMessage(markReadMutation.error ?? markAllMutation.error ?? deleteMutation.error)
+          : '',
+      actionPending: markReadMutation.isPending || markAllMutation.isPending || deleteMutation.isPending,
       toasts,
       setPage,
       setSearch(value) {
@@ -137,6 +149,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       deleteMutation,
       markAllMutation,
       markReadMutation,
+      notificationsQuery.error,
       notificationsQuery.isLoading,
       page,
       search,
@@ -163,21 +176,18 @@ export function useNotifications() {
 }
 
 function createNotificationSocket(
+  token: string,
   queryClient: QueryClient,
   onNotification: (notification: NexusNotification) => void,
 ) {
   disconnectNotificationSocket()
 
-  const token = getAuthToken()
-  const user = getStoredAuthUser()
   const socketUrl = import.meta.env.VITE_SOCKET_URL ?? 'http://localhost:5000'
   const socket: Socket = io(socketUrl, {
     autoConnect: true,
     transports: ['websocket'],
     auth: {
       token,
-      userId: user?.id,
-      role: user?.role,
     },
   })
 
@@ -187,6 +197,12 @@ function createNotificationSocket(
     onNotification(notification)
     void queryClient.invalidateQueries({ queryKey: ['notifications'] })
   })
+
+  for (const event of ['notification:read', 'notification:all-read', 'notification:delete']) {
+    socket.on(event, () => {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    })
+  }
 
   return socket
 }

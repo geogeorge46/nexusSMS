@@ -1,17 +1,35 @@
 import { BookOpen, Plus } from 'lucide-react'
+import { useDeferredValue, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { PageHeader } from '@/components/molecules/page-header'
 import { CourseTable } from '@/components/organisms/course-table'
 import { Button } from '@/components/ui/button'
-import { GlassCard } from '@/components/ui/card'
+import { Card, CardContent, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useCourses } from '@/hooks/use-courses'
+import { getCourseErrorMessage, useCourses, type CourseFilters } from '@/hooks/use-courses'
+
+const pageSize = 7
 
 export function CourseListPage() {
-  const { data, isLoading } = useCourses()
-  const totalCapacity = (data ?? []).reduce((sum, course) => sum + course.capacity, 0)
-  const totalEnrollment = (data ?? []).reduce((sum, course) => sum + course.enrolled, 0)
+  const [filters, setFilters] = useState<CourseFilters>({
+    search: '',
+    status: 'All',
+    department: 'All',
+    page: 1,
+    limit: pageSize,
+  })
+  const deferredSearch = useDeferredValue(filters.search)
+  const queryFilters = { ...filters, search: deferredSearch }
+  const { data, error, isError, isFetching, isLoading } = useCourses(queryFilters)
+
+  function updateFilters(nextFilters: Partial<CourseFilters>) {
+    setFilters((current) => ({
+      ...current,
+      ...nextFilters,
+      page: nextFilters.page ?? 1,
+    }))
+  }
 
   return (
     <div className="space-y-6">
@@ -34,15 +52,32 @@ export function CourseListPage() {
           Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-28" />)
         ) : (
           <>
-            <SummaryCard label="Total Courses" value={String(data?.length ?? 0)} />
-            <SummaryCard label="Active Courses" value={String(data?.filter((course) => course.status === 'Active').length ?? 0)} />
-            <SummaryCard label="Enrollment" value={String(totalEnrollment)} />
-            <SummaryCard label="Capacity Used" value={`${Math.round((totalEnrollment / Math.max(totalCapacity, 1)) * 100)}%`} />
+            <SummaryCard label="Total Courses" value={String(data?.summary.total ?? 0)} />
+            <SummaryCard label="Active Courses" value={String(data?.summary.active ?? 0)} />
+            <SummaryCard label="Enrollment" value={String(data?.summary.enrollment ?? 0)} />
+            <SummaryCard label="Capacity Used" value={`${data?.summary.capacityUsed ?? 0}%`} />
           </>
         )}
       </section>
 
-      <CourseTable courses={data} isLoading={isLoading} />
+      {isError ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-lg font-bold text-foreground">Unable to load courses</p>
+            <p className="mt-2 text-sm text-muted-foreground">{getCourseErrorMessage(error)}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <CourseTable
+          courses={data?.items}
+          filters={filters}
+          isFetching={isFetching}
+          isLoading={isLoading}
+          onFiltersChange={updateFilters}
+          onPageChange={(page) => updateFilters({ page })}
+          pagination={data?.pagination}
+        />
+      )}
     </div>
   )
 }

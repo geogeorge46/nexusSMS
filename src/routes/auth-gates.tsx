@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import type { ReactNode } from 'react'
 
 import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -27,6 +28,14 @@ export function PublicOnlyRoute() {
   }
 
   return <Outlet />
+}
+
+export function RequireSuperAdmin({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (user?.role !== 'Super Admin') return <Navigate replace to="/" />
+  return children
 }
 
 function AuthLoadingState() {

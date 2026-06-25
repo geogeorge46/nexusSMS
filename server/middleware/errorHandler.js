@@ -7,7 +7,8 @@ export function notFound(req, res, next) {
 }
 
 export function errorHandler(error, _req, res, _next) {
-  const statusCode = error.statusCode ?? (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500)
+  const uploadStatusCode = error.code === 'LIMIT_FILE_SIZE' ? 413 : error.name === 'MulterError' ? 400 : undefined
+  const statusCode = error.statusCode ?? uploadStatusCode ?? (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500)
 
   logger.error(error.message || 'Internal server error', {
     statusCode,

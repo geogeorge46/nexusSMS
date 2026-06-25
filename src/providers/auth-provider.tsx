@@ -9,7 +9,6 @@ import {
   loginWithApi,
   logoutWithApi,
   saveAuthUser,
-  signupWithApi,
   type AuthUser,
 } from '@/lib/auth-api'
 import { disconnectNotificationSocket } from '@/lib/notification-socket'
@@ -19,18 +18,12 @@ type LoginPayload = {
   password: string
 }
 
-type SignupPayload = LoginPayload & {
-  name: string
-  role: AuthUser['role']
-}
-
 type AuthContextValue = {
   user: AuthUser | null
   token: string | null
   isAuthenticated: boolean
   isBootstrapping: boolean
   login: (payload: LoginPayload) => Promise<void>
-  signup: (payload: SignupPayload) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -78,12 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(session.user)
   }, [])
 
-  const signup = useCallback(async (payload: SignupPayload) => {
-    const session = await signupWithApi(payload)
-    setToken(session.token)
-    setUser(session.user)
-  }, [])
-
   const logout = useCallback(async () => {
     try {
       if (getAuthToken()) {
@@ -108,10 +95,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(token && user),
       isBootstrapping,
       login,
-      signup,
       logout,
     }),
-    [isBootstrapping, login, logout, signup, token, user],
+    [isBootstrapping, login, logout, token, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

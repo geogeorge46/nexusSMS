@@ -49,9 +49,11 @@ export function TopNavbar() {
             <Sparkles />
             AI Assist
           </Button>
-          <Button className="hidden sm:inline-flex" type="button">
-            <Plus />
-            New Record
+          <Button asChild className="hidden sm:inline-flex">
+            <Link to="/students/new">
+              <Plus />
+              New Record
+            </Link>
           </Button>
 
           <ThemeToggle />

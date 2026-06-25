@@ -7,8 +7,8 @@ import {
   Pencil,
   Search,
   SlidersHorizontal,
+  Trash2,
 } from 'lucide-react'
-import { useDeferredValue, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { CapacityIndicator } from '@/components/molecules/capacity-indicator'
@@ -23,63 +23,47 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { Course } from '@/hooks/use-courses'
+import { getCourseErrorMessage, useDeleteCourse, type Course, type CourseFilters } from '@/hooks/use-courses'
 
-const pageSize = 7
-const allStatuses = ['All', 'Active', 'Draft', 'Review', 'Archived']
+const allStatuses = ['All', 'Active', 'Inactive']
 const allDepartments = ['All', 'Engineering', 'Science', 'Business', 'Arts', 'Humanities']
 
 export function CourseTable({
   courses = [],
+  filters,
+  isFetching,
   isLoading,
+  onFiltersChange,
+  onPageChange,
+  pagination,
 }: {
   courses?: Course[]
+  filters: CourseFilters
+  isFetching: boolean
   isLoading: boolean
+  onFiltersChange: (filters: Partial<CourseFilters>) => void
+  onPageChange: (page: number) => void
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
 }) {
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('All')
-  const [department, setDepartment] = useState('All')
-  const [page, setPage] = useState(1)
-  const deferredQuery = useDeferredValue(query)
-
-  const filteredCourses = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase()
-
-    return courses.filter((course) => {
-      const matchesQuery = [
-        course.title,
-        course.code,
-        course.id,
-        course.department,
-        course.faculty,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery)
-      const matchesStatus = status === 'All' || course.status === status
-      const matchesDepartment = department === 'All' || course.department === department
-
-      return matchesQuery && matchesStatus && matchesDepartment
-    })
-  }, [courses, deferredQuery, department, status])
-
-  const pageCount = Math.max(1, Math.ceil(filteredCourses.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const pageCourses = filteredCourses.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const currentPage = pagination?.page ?? filters.page
+  const pageCount = pagination?.pages ?? 1
+  const total = pagination?.total ?? 0
 
   function updateQuery(value: string) {
-    setQuery(value)
-    setPage(1)
+    onFiltersChange({ search: value })
   }
 
   function updateStatus(value: string) {
-    setStatus(value)
-    setPage(1)
+    onFiltersChange({ status: value })
   }
 
   function updateDepartment(value: string) {
-    setDepartment(value)
-    setPage(1)
+    onFiltersChange({ department: value })
   }
 
   return (
@@ -105,15 +89,15 @@ export function CourseTable({
               onChange={(event) => updateQuery(event.target.value)}
               placeholder="Search course, code, faculty, department..."
               type="search"
-              value={query}
+              value={filters.search}
             />
           </label>
-          <FilterSelect label="Status" onChange={updateStatus} options={allStatuses} value={status} />
+          <FilterSelect label="Status" onChange={updateStatus} options={allStatuses} value={filters.status} />
           <FilterSelect
             label="Department"
             onChange={updateDepartment}
             options={allDepartments}
-            value={department}
+            value={filters.department}
           />
         </div>
       </CardHeader>
@@ -123,16 +107,16 @@ export function CourseTable({
           <CourseTableSkeleton />
         ) : (
           <>
-            <DesktopTable courses={pageCourses} />
-            <MobileCards courses={pageCourses} />
+            <DesktopTable courses={courses} />
+            <MobileCards courses={courses} />
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                Showing {pageCourses.length} of {filteredCourses.length} courses
+                {isFetching ? 'Refreshing courses...' : `Showing ${courses.length} of ${total} courses`}
               </p>
               <div className="flex items-center gap-2">
                 <Button
                   disabled={currentPage === 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                   size="sm"
                   type="button"
                   variant="glass"
@@ -145,7 +129,7 @@ export function CourseTable({
                 </span>
                 <Button
                   disabled={currentPage === pageCount}
-                  onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                  onClick={() => onPageChange(Math.min(pageCount, currentPage + 1))}
                   size="sm"
                   type="button"
                   variant="glass"
@@ -271,6 +255,19 @@ function CourseIdentity({ course }: { course: Course }) {
 }
 
 function CourseActions({ course }: { course: Course }) {
+  const deleteCourse = useDeleteCourse()
+
+  async function handleDelete() {
+    const confirmed = window.confirm(`Delete ${course.title}? This action cannot be undone.`)
+    if (!confirmed) return
+
+    try {
+      await deleteCourse.mutateAsync(course.id)
+    } catch (caught) {
+      window.alert(getCourseErrorMessage(caught))
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -292,7 +289,10 @@ function CourseActions({ course }: { course: Course }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Archive Course</DropdownMenuItem>
+        <DropdownMenuItem disabled={deleteCourse.isPending} onClick={() => void handleDelete()}>
+          <Trash2 className="size-4" />
+          Delete Course
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

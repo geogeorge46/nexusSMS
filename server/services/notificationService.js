@@ -1,12 +1,11 @@
 import { Notification } from '../models/Notification.js'
-import { emitNotification } from '../socket/socketServer.js'
+import { emitNotificationEvent, emitUserNotificationEvent } from '../socket/socketServer.js'
 
 export async function listNotifications(filters = {}) {
   const page = Math.max(Number(filters.page ?? 1), 1)
   const limit = Math.min(Math.max(Number(filters.limit ?? 10), 1), 50)
-  const query = {
-    'recipient.role': filters.role ?? 'Admin',
-  }
+  const audienceQuery = buildAudienceQuery(filters.user)
+  const query = { ...audienceQuery }
 
   if (filters.search) {
     query.$text = { $search: filters.search }
@@ -22,7 +21,7 @@ export async function listNotifications(filters = {}) {
       .limit(limit)
       .lean(),
     Notification.countDocuments(query),
-    Notification.countDocuments({ 'recipient.role': query['recipient.role'], isRead: false }),
+    Notification.countDocuments({ ...audienceQuery, isRead: false }),
   ])
 
   return {
@@ -54,13 +53,13 @@ export async function createNotification(payload) {
   })
 
   const serialized = notification.toObject()
-  emitNotification(serialized)
+  emitNotificationEvent('notification:new', serialized)
   return serialized
 }
 
-export async function markNotificationRead(notificationId) {
-  const notification = await Notification.findByIdAndUpdate(
-    notificationId,
+export async function markNotificationRead(notificationId, user) {
+  const notification = await Notification.findOneAndUpdate(
+    { _id: notificationId, ...buildAudienceQuery(user) },
     { isRead: true },
     { new: true },
   ).lean()
@@ -71,16 +70,25 @@ export async function markNotificationRead(notificationId) {
     throw error
   }
 
+  emitNotificationEvent('notification:read', notification)
   return notification
 }
 
-export async function markAllNotificationsRead(role) {
-  const result = await Notification.updateMany({ 'recipient.role': role, isRead: false }, { isRead: true })
-  return { modifiedCount: result.modifiedCount }
+export async function markAllNotificationsRead(user) {
+  const result = await Notification.updateMany(
+    { ...buildAudienceQuery(user), isRead: false },
+    { isRead: true },
+  )
+  const payload = { modifiedCount: result.modifiedCount }
+  emitUserNotificationEvent('notification:all-read', user, payload)
+  return payload
 }
 
-export async function deleteNotification(notificationId) {
-  const notification = await Notification.findByIdAndDelete(notificationId).lean()
+export async function deleteNotification(notificationId, user) {
+  const notification = await Notification.findOneAndDelete({
+    _id: notificationId,
+    ...buildAudienceQuery(user),
+  }).lean()
 
   if (!notification) {
     const error = new Error('Notification not found')
@@ -88,5 +96,16 @@ export async function deleteNotification(notificationId) {
     throw error
   }
 
-  return { id: notificationId }
+  const result = { id: notificationId }
+  emitNotificationEvent('notification:delete', notification, result)
+  return result
+}
+
+function buildAudienceQuery(user) {
+  return {
+    $or: [
+      { 'recipient.userId': user.id },
+      { 'recipient.userId': '', 'recipient.role': user.role },
+    ],
+  }
 }

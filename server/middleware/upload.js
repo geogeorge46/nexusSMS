@@ -26,7 +26,6 @@ const allowedDocumentMimeTypes = new Set([
   'application/pdf',
   'image/jpeg',
   'image/png',
-  'image/webp',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ])
@@ -40,14 +39,16 @@ export const uploadStudentDocuments = multer({
     files: 8,
   },
   fileFilter(_req, file, callback) {
-    if (
-      allowedDocumentMimeTypes.has(file.mimetype) ||
-      /\.(pdf|jpe?g|png|webp|doc|docx)$/i.test(file.originalname)
-    ) {
+    const hasAllowedMimeType = allowedDocumentMimeTypes.has(file.mimetype)
+    const hasAllowedExtension = /\.(pdf|jpe?g|png|doc|docx)$/i.test(file.originalname)
+
+    if (hasAllowedMimeType && hasAllowedExtension) {
       callback(null, true)
       return
     }
 
-    callback(new Error('Only PDF, JPG, PNG, WEBP, DOC, and DOCX documents are allowed'))
+    const error = new Error('Only PDF, JPG, PNG, DOC, and DOCX documents are allowed')
+    error.statusCode = 400
+    callback(error)
   },
 })

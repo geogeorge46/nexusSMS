@@ -1,5 +1,4 @@
-import { ChevronLeft, ChevronRight, Download, Eye, MoreHorizontal, Pencil, Search, SlidersHorizontal } from 'lucide-react'
-import { useDeferredValue, useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Download, Eye, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { StudentAvatar } from '@/components/molecules/student-avatar'
@@ -14,63 +13,47 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { Student } from '@/hooks/use-students'
+import { getStudentErrorMessage, useDeleteStudent, type Student, type StudentFilters } from '@/hooks/use-students'
 
-const pageSize = 8
 const allStatuses = ['All', 'Active', 'Pending', 'Review', 'Inactive']
 const allDepartments = ['All', 'Engineering', 'Science', 'Business', 'Arts', 'Humanities']
 
 export function StudentTable({
+  filters,
   students = [],
   isLoading,
+  isFetching,
+  onFiltersChange,
+  onPageChange,
+  pagination,
 }: {
+  filters: StudentFilters
   students?: Student[]
   isLoading: boolean
+  isFetching: boolean
+  onFiltersChange: (filters: Partial<StudentFilters>) => void
+  onPageChange: (page: number) => void
+  pagination?: {
+    page: number
+    limit: number
+    total: number
+    pages: number
+  }
 }) {
-  const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('All')
-  const [department, setDepartment] = useState('All')
-  const [page, setPage] = useState(1)
-  const deferredQuery = useDeferredValue(query)
-
-  const filteredStudents = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase()
-
-    return students.filter((student) => {
-      const matchesQuery = [
-        student.name,
-        student.email,
-        student.id,
-        student.program,
-        student.department,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery)
-      const matchesStatus = status === 'All' || student.status === status
-      const matchesDepartment = department === 'All' || student.department === department
-
-      return matchesQuery && matchesStatus && matchesDepartment
-    })
-  }, [deferredQuery, department, status, students])
-
-  const pageCount = Math.max(1, Math.ceil(filteredStudents.length / pageSize))
-  const currentPage = Math.min(page, pageCount)
-  const pageStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const currentPage = pagination?.page ?? filters.page
+  const pageCount = pagination?.pages ?? 1
+  const total = pagination?.total ?? 0
 
   function updateQuery(value: string) {
-    setQuery(value)
-    setPage(1)
+    onFiltersChange({ search: value })
   }
 
   function updateStatus(value: string) {
-    setStatus(value)
-    setPage(1)
+    onFiltersChange({ status: value })
   }
 
   function updateDepartment(value: string) {
-    setDepartment(value)
-    setPage(1)
+    onFiltersChange({ department: value })
   }
 
   return (
@@ -96,15 +79,15 @@ export function StudentTable({
               onChange={(event) => updateQuery(event.target.value)}
               placeholder="Search name, email, ID, program..."
               type="search"
-              value={query}
+              value={filters.search}
             />
           </label>
-          <FilterSelect label="Status" onChange={updateStatus} options={allStatuses} value={status} />
+          <FilterSelect label="Status" onChange={updateStatus} options={allStatuses} value={filters.status} />
           <FilterSelect
             label="Department"
             onChange={updateDepartment}
             options={allDepartments}
-            value={department}
+            value={filters.department}
           />
         </div>
       </CardHeader>
@@ -114,16 +97,16 @@ export function StudentTable({
           <StudentTableSkeleton />
         ) : (
           <>
-            <DesktopTable students={pageStudents} />
-            <MobileCards students={pageStudents} />
+            <DesktopTable students={students} />
+            <MobileCards students={students} />
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                Showing {pageStudents.length} of {filteredStudents.length} students
+                {isFetching ? 'Refreshing students...' : `Showing ${students.length} of ${total} students`}
               </p>
               <div className="flex items-center gap-2">
                 <Button
                   disabled={currentPage === 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  onClick={() => onPageChange(Math.max(1, currentPage - 1))}
                   size="sm"
                   type="button"
                   variant="glass"
@@ -136,7 +119,7 @@ export function StudentTable({
                 </span>
                 <Button
                   disabled={currentPage === pageCount}
-                  onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
+                  onClick={() => onPageChange(Math.min(pageCount, currentPage + 1))}
                   size="sm"
                   type="button"
                   variant="glass"
@@ -260,6 +243,19 @@ function StudentIdentity({ student }: { student: Student }) {
 }
 
 function StudentActions({ student }: { student: Student }) {
+  const deleteStudent = useDeleteStudent()
+
+  async function handleDelete() {
+    const confirmed = window.confirm(`Delete ${student.name}? This action cannot be undone.`)
+    if (!confirmed) return
+
+    try {
+      await deleteStudent.mutateAsync(student.id)
+    } catch (caught) {
+      window.alert(getStudentErrorMessage(caught))
+    }
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -281,7 +277,10 @@ function StudentActions({ student }: { student: Student }) {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>Archive Record</DropdownMenuItem>
+        <DropdownMenuItem disabled={deleteStudent.isPending} onClick={() => void handleDelete()}>
+          <Trash2 className="size-4" />
+          Delete Student
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

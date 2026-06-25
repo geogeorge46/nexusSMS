@@ -27,19 +27,6 @@ export async function loginWithApi(payload: { email: string; password: string })
   })
 }
 
-export async function signupWithApi(payload: {
-  name: string
-  email: string
-  password: string
-  role: 'Admin' | 'Super Admin'
-}) {
-  return runAuthRequest(async () => {
-    const response = await api.post<AuthResponse>('/auth/signup', payload)
-    saveAuthSession(response.data)
-    return response.data
-  })
-}
-
 export async function fetchCurrentUser() {
   const response = await api.get<{ user: AuthUser }>('/auth/me')
 
@@ -83,11 +70,6 @@ export function getStoredAuthUser() {
 export function clearAuthSession() {
   window.localStorage.removeItem(tokenKey)
   window.localStorage.removeItem(userKey)
-}
-
-export function getAuthHeaders() {
-  const token = getAuthToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function runAuthRequest<T>(request: () => Promise<T>) {

@@ -15,7 +15,7 @@ export const getNotifications = asyncHandler(async (req, res) => {
     limit: req.query.limit,
     search: req.query.search,
     isRead: req.query.isRead,
-    role: req.user.role,
+    user: req.user,
   })
 
   res.json(result)
@@ -49,17 +49,17 @@ export const postNotification = asyncHandler(async (req, res) => {
 })
 
 export const patchNotificationRead = asyncHandler(async (req, res) => {
-  const notification = await markNotificationRead(req.params.notificationId)
+  const notification = await markNotificationRead(req.params.notificationId, req.user)
   res.json(notification)
 })
 
 export const patchAllNotificationsRead = asyncHandler(async (req, res) => {
-  const result = await markAllNotificationsRead(req.user.role)
+  const result = await markAllNotificationsRead(req.user)
   res.json(result)
 })
 
 export const removeNotification = asyncHandler(async (req, res) => {
-  const result = await deleteNotification(req.params.notificationId)
+  const result = await deleteNotification(req.params.notificationId, req.user)
 
   await createAuditLog({
     ...getAuditContext(req),

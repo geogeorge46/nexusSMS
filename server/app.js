@@ -11,10 +11,17 @@ import { requestLogStream } from './config/logger.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 import { attachRequestContext } from './middleware/requestContext.js'
 import { auditLogRouter } from './routes/auditLogRoutes.js'
+import { adminRouter } from './routes/adminRoutes.js'
+import { attendanceRouter } from './routes/attendanceRoutes.js'
 import { authRouter } from './routes/authRoutes.js'
+import { courseRouter } from './routes/courseRoutes.js'
+import { dashboardRouter } from './routes/dashboardRoutes.js'
+import { gradeRouter } from './routes/gradeRoutes.js'
 import { notificationRouter } from './routes/notificationRoutes.js'
+import { reportRouter } from './routes/reportRoutes.js'
 import { studentDocumentRouter } from './routes/studentDocumentRoutes.js'
 import { studentImportRouter } from './routes/studentImportRoutes.js'
+import { studentRouter } from './routes/studentRoutes.js'
 
 export const app = express()
 
@@ -84,9 +91,16 @@ app.get('/api/ready', (_req, res) => {
 })
 
 app.use('/api/auth', authRouter)
+app.use('/api/admins', adminRouter)
 app.use('/api/students/import', studentImportRouter)
+app.use('/api/students', studentRouter)
+app.use('/api/courses', courseRouter)
+app.use('/api/dashboard', dashboardRouter)
+app.use('/api/attendance', attendanceRouter)
+app.use('/api/grades', gradeRouter)
 app.use('/api/documents', studentDocumentRouter)
 app.use('/api/notifications', notificationRouter)
+app.use('/api/reports', reportRouter)
 app.use('/api/audit-logs', auditLogRouter)
 
 app.use(notFound)

@@ -21,6 +21,8 @@ export function NotificationBell() {
     notifications,
     unreadCount,
     isLoading,
+    errorMessage,
+    actionPending,
     page,
     pages,
     search,
@@ -65,7 +67,7 @@ export function NotificationBell() {
               value={search}
             />
           </label>
-          <Button onClick={markAllRead} type="button" variant="glass">
+          <Button disabled={unreadCount === 0 || actionPending} onClick={markAllRead} type="button" variant="glass">
             <CheckCheck />
             Read
           </Button>
@@ -74,6 +76,10 @@ export function NotificationBell() {
         <div className="mt-5 space-y-3">
           {isLoading ? (
             Array.from({ length: 5 }).map((_, index) => <Skeleton className="h-28" key={index} />)
+          ) : errorMessage ? (
+            <div className="rounded-[20px] border border-rose-500/30 bg-rose-500/10 p-6 text-center text-sm font-semibold text-rose-700 dark:text-rose-300">
+              {errorMessage}
+            </div>
           ) : notifications.length === 0 ? (
             <div className="rounded-[20px] border border-dashed border-border bg-muted/35 p-8 text-center text-sm font-semibold text-muted-foreground">
               No notifications found.
@@ -103,6 +109,7 @@ export function NotificationBell() {
                     {!notification.isRead && (
                       <Button
                         aria-label={`Mark ${notification.title} as read`}
+                        disabled={actionPending}
                         onClick={() => markRead(notification._id)}
                         size="icon"
                         type="button"
@@ -113,7 +120,7 @@ export function NotificationBell() {
                     )}
                     <Button
                       aria-label={`Delete ${notification.title}`}
-                      disabled={notification._id.startsWith('demo-')}
+                      disabled={actionPending}
                       onClick={() => removeNotification(notification._id)}
                       size="icon"
                       type="button"
