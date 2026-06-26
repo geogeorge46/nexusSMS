@@ -36,6 +36,7 @@ export function CourseTable({
   onFiltersChange,
   onPageChange,
   pagination,
+  canManageCourses,
 }: {
   courses?: Course[]
   filters: CourseFilters
@@ -49,6 +50,7 @@ export function CourseTable({
     total: number
     pages: number
   }
+  canManageCourses: boolean
 }) {
   const currentPage = pagination?.page ?? filters.page
   const pageCount = pagination?.pages ?? 1
@@ -107,8 +109,8 @@ export function CourseTable({
           <CourseTableSkeleton />
         ) : (
           <>
-            <DesktopTable courses={courses} />
-            <MobileCards courses={courses} />
+            <DesktopTable courses={courses} canManageCourses={canManageCourses} />
+            <MobileCards courses={courses} canManageCourses={canManageCourses} />
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-muted-foreground">
                 {isFetching ? 'Refreshing courses...' : `Showing ${courses.length} of ${total} courses`}
@@ -174,7 +176,7 @@ function FilterSelect({
   )
 }
 
-function DesktopTable({ courses }: { courses: Course[] }) {
+function DesktopTable({ courses, canManageCourses }: { courses: Course[]; canManageCourses: boolean }) {
   return (
     <div className="hidden overflow-hidden rounded-[20px] border border-border/70 xl:block">
       <table className="w-full border-collapse text-left">
@@ -205,7 +207,7 @@ function DesktopTable({ courses }: { courses: Course[] }) {
                 <CourseStatusChip status={course.status} />
               </td>
               <td className="px-4 py-4 text-right">
-                <CourseActions course={course} />
+                <CourseActions course={course} canManageCourses={canManageCourses} />
               </td>
             </tr>
           ))}
@@ -216,14 +218,14 @@ function DesktopTable({ courses }: { courses: Course[] }) {
   )
 }
 
-function MobileCards({ courses }: { courses: Course[] }) {
+function MobileCards({ courses, canManageCourses }: { courses: Course[]; canManageCourses: boolean }) {
   return (
     <div className="grid gap-3 xl:hidden">
       {courses.map((course) => (
         <div key={course.id} className="rounded-[20px] border border-border/70 bg-background/50 p-4">
           <div className="flex items-start justify-between gap-3">
             <CourseIdentity course={course} />
-            <CourseActions course={course} />
+            <CourseActions course={course} canManageCourses={canManageCourses} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <MobileFact label="Faculty" value={course.faculty} />
@@ -254,7 +256,7 @@ function CourseIdentity({ course }: { course: Course }) {
   )
 }
 
-function CourseActions({ course }: { course: Course }) {
+function CourseActions({ course, canManageCourses }: { course: Course; canManageCourses: boolean }) {
   const deleteCourse = useDeleteCourse()
 
   async function handleDelete() {
@@ -282,17 +284,21 @@ function CourseActions({ course }: { course: Course }) {
             View Details
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to={`/courses/${course.id}/edit`}>
-            <Pencil className="size-4" />
-            Edit Course
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={deleteCourse.isPending} onClick={() => void handleDelete()}>
-          <Trash2 className="size-4" />
-          Delete Course
-        </DropdownMenuItem>
+        {canManageCourses && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to={`/courses/${course.id}/edit`}>
+                <Pencil className="size-4" />
+                Edit Course
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={deleteCourse.isPending} onClick={() => void handleDelete()}>
+              <Trash2 className="size-4" />
+              Delete Course
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

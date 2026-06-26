@@ -5,11 +5,11 @@ import {
   getDashboardChartsController,
   getDashboardSummaryController,
 } from '../controllers/dashboardController.js'
-import { requireAdmin } from '../middleware/requestContext.js'
+import { requireAuthenticated } from '../middleware/requestContext.js'
 
 export const dashboardRouter = Router()
 
-dashboardRouter.use(requireAdmin)
+dashboardRouter.use(requireAuthenticated)
 dashboardRouter.get('/summary', getDashboardSummaryController)
 dashboardRouter.get('/charts', getDashboardChartsController)
 dashboardRouter.get('/activity', getDashboardActivityController)

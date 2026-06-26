@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/molecules/page-header'
 import { MarkAttendanceRoster } from '@/components/organisms/mark-attendance-roster'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useCatalog } from '@/hooks/use-catalog'
 import { getAttendanceErrorMessage, useAttendance } from '@/hooks/use-attendance'
 import { useCourses } from '@/hooks/use-courses'
 import { useStudents } from '@/hooks/use-students'
@@ -37,6 +38,14 @@ export function MarkAttendancePage() {
     page: 1,
     limit: 50,
   })
+  const departments = useCatalog('departments', { status: 'Active' })
+  const enrollments = useCatalog('studentcourses')
+  const enrolledStudentIds = new Set(
+    (enrollments.data?.items ?? [])
+      .filter((item) => item.status === 'Enrolled' && (course === 'All' || item.courseId === course || item.courseId === selectedCourseDatabaseId(courses.data?.items, course)))
+      .map((item) => item.studentId),
+  )
+  const studentOptions = (students.data?.items ?? []).filter((item) => course === 'All' || enrolledStudentIds.has(item.databaseId))
 
   return (
     <div className="space-y-6">
@@ -71,17 +80,17 @@ export function MarkAttendancePage() {
             onChange={setStudent}
             options={[
               { label: 'All Students', value: '' },
-              ...(students.data?.items ?? []).map((item) => ({ label: item.name, value: item.id })),
+              ...studentOptions.map((item) => ({ label: item.name, value: item.id })),
             ]}
             value={student}
           />
           <Select
             label="Department"
             onChange={setDepartment}
-            options={['All', 'Engineering', 'Science', 'Business', 'Arts', 'Humanities'].map((value) => ({
-              label: value === 'All' ? 'All Departments' : value,
-              value,
-            }))}
+            options={[
+              { label: 'All Departments', value: 'All' },
+              ...(departments.data?.items ?? []).map((item) => ({ label: item.name ?? item.code ?? item.id, value: item.name ?? item.id })),
+            ]}
             value={department}
           />
           <label className="space-y-2">
@@ -111,8 +120,19 @@ export function MarkAttendancePage() {
           isLoading={attendance.isLoading || courses.isLoading || students.isLoading}
         />
       )}
+      {course !== 'All' && !enrollments.isLoading && studentOptions.length === 0 && (
+        <Card>
+          <CardContent className="p-6 text-sm font-semibold text-muted-foreground">
+            No enrolled students are available for this course yet. Complete Student Course Enrollment first.
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
+}
+
+function selectedCourseDatabaseId(courses: Array<{ id: string; databaseId: string }> | undefined, courseId: string) {
+  return courses?.find((course) => course.id === courseId || course.databaseId === courseId)?.databaseId
 }
 
 function Select({

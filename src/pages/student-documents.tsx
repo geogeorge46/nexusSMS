@@ -3,8 +3,13 @@ import { FileArchive, ShieldCheck, UploadCloud } from 'lucide-react'
 import { PageHeader } from '@/components/molecules/page-header'
 import { StudentDocumentWorkspace } from '@/components/organisms/student-document-workspace'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/use-auth'
+import { canWriteDocuments } from '@/lib/permissions'
 
 export function StudentDocumentsPage() {
+  const { user } = useAuth()
+  const canManageDocuments = canWriteDocuments(user)
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -19,12 +24,14 @@ export function StudentDocumentsPage() {
                 Library
               </a>
             </Button>
-            <Button asChild type="button">
-              <a href="#document-upload">
-                <UploadCloud />
-                Upload
-              </a>
-            </Button>
+            {canManageDocuments && (
+              <Button asChild type="button">
+                <a href="#document-upload">
+                  <UploadCloud />
+                  Upload
+                </a>
+              </Button>
+            )}
           </>
         }
       />
@@ -48,7 +55,7 @@ export function StudentDocumentsPage() {
         </div>
 
         <div id="document-library">
-          <StudentDocumentWorkspace />
+          <StudentDocumentWorkspace canManageDocuments={canManageDocuments} />
         </div>
       </section>
     </div>

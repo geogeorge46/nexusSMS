@@ -5,7 +5,14 @@ export type AuthUser = {
   id: string
   name: string
   email: string
-  role: 'Admin' | 'Super Admin'
+  role: 'Admin' | 'Super Admin' | 'Teacher' | 'Staff'
+  staff?: {
+    id: string
+    employeeNumber: string
+    category: 'Teaching' | 'Non-Teaching'
+    designation: string
+    departmentId: string
+  }
   status?: 'Active' | 'Suspended'
   lastLoginAt?: string
   createdAt?: string

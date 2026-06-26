@@ -7,7 +7,17 @@ import { GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NotFoundPage } from '@/pages/not-found'
 import { SimplePage } from '@/pages/simple-page'
-import { PublicOnlyRoute, RequireAuth, RequireSuperAdmin } from '@/routes/auth-gates'
+import {
+  PublicOnlyRoute,
+  RequireAcademicTools,
+  RequireAdmin,
+  RequireAuth,
+  RequireCourseManager,
+  RequireCourseViewer,
+  RequireReports,
+  RequireStudentWriter,
+  RequireSuperAdmin,
+} from '@/routes/auth-gates'
 
 const DashboardPage = lazyPage(() => import('@/pages/dashboard'), 'DashboardPage')
 const LoginPage = lazyPage(() => import('@/pages/login'), 'LoginPage')
@@ -32,6 +42,7 @@ const AnalyticsPage = lazyPage(() => import('@/pages/analytics'), 'AnalyticsPage
 const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs'), 'AuditLogsPage')
 const SettingsPage = lazyPage(() => import('@/pages/settings'), 'SettingsPage')
 const AdminManagementPage = lazyPage(() => import('@/pages/admin-management'), 'AdminManagementPage')
+const InstitutionalModulePage = lazyPage(() => import('@/pages/institutional-module'), 'InstitutionalModulePage')
 
 export const router = createBrowserRouter([
   {
@@ -52,21 +63,22 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: withRouteSuspense(<DashboardPage />) },
           { path: 'students', element: withRouteSuspense(<StudentListPage />) },
-          { path: 'students/new', element: withRouteSuspense(<AddStudentPage />) },
-          { path: 'students/import', element: withRouteSuspense(<StudentImportPage />) },
+          { path: 'students/new', element: <RequireStudentWriter>{withRouteSuspense(<AddStudentPage />)}</RequireStudentWriter> },
+          { path: 'students/import', element: <RequireStudentWriter>{withRouteSuspense(<StudentImportPage />)}</RequireStudentWriter> },
           { path: 'documents', element: withRouteSuspense(<StudentDocumentsPage />) },
           { path: 'students/:studentId', element: withRouteSuspense(<StudentProfilePage />) },
-          { path: 'students/:studentId/edit', element: withRouteSuspense(<EditStudentPage />) },
-          { path: 'courses', element: withRouteSuspense(<CourseListPage />) },
-          { path: 'courses/new', element: withRouteSuspense(<AddCoursePage />) },
-          { path: 'courses/:courseId', element: withRouteSuspense(<CourseDetailsPage />) },
-          { path: 'courses/:courseId/edit', element: withRouteSuspense(<EditCoursePage />) },
-          { path: 'attendance', element: withRouteSuspense(<AttendanceDashboardPage />) },
-          { path: 'attendance/mark', element: withRouteSuspense(<MarkAttendancePage />) },
-          { path: 'grades', element: withRouteSuspense(<GradeManagementPage />) },
-          { path: 'reports', element: withRouteSuspense(<ReportsPage />) },
-          { path: 'analytics', element: withRouteSuspense(<AnalyticsPage />) },
-          { path: 'audit-logs', element: withRouteSuspense(<AuditLogsPage />) },
+          { path: 'students/:studentId/edit', element: <RequireStudentWriter>{withRouteSuspense(<EditStudentPage />)}</RequireStudentWriter> },
+          { path: 'courses', element: <RequireCourseViewer>{withRouteSuspense(<CourseListPage />)}</RequireCourseViewer> },
+          { path: 'courses/new', element: <RequireCourseManager>{withRouteSuspense(<AddCoursePage />)}</RequireCourseManager> },
+          { path: 'courses/:courseId', element: <RequireCourseViewer>{withRouteSuspense(<CourseDetailsPage />)}</RequireCourseViewer> },
+          { path: 'courses/:courseId/edit', element: <RequireCourseManager>{withRouteSuspense(<EditCoursePage />)}</RequireCourseManager> },
+          { path: 'attendance', element: <RequireAcademicTools>{withRouteSuspense(<AttendanceDashboardPage />)}</RequireAcademicTools> },
+          { path: 'attendance/mark', element: <RequireAcademicTools>{withRouteSuspense(<MarkAttendancePage />)}</RequireAcademicTools> },
+          { path: 'grades', element: <RequireAcademicTools>{withRouteSuspense(<GradeManagementPage />)}</RequireAcademicTools> },
+          { path: 'reports', element: <RequireReports>{withRouteSuspense(<ReportsPage />)}</RequireReports> },
+          { path: 'analytics', element: <RequireAdmin>{withRouteSuspense(<AnalyticsPage />)}</RequireAdmin> },
+          { path: 'institution/:module', element: withRouteSuspense(<InstitutionalModulePage />) },
+          { path: 'audit-logs', element: <RequireAdmin>{withRouteSuspense(<AuditLogsPage />)}</RequireAdmin> },
           {
             path: 'admins',
             element: <RequireSuperAdmin>{withRouteSuspense(<AdminManagementPage />)}</RequireSuperAdmin>,
@@ -74,12 +86,14 @@ export const router = createBrowserRouter([
           {
             path: 'governance',
             element: (
-              <SimplePage
-                eyebrow="Controls"
-                title="Governance"
-                description="Placeholder structure for roles, audit trails, compliance checks, and secure administrative review."
-                icon={ShieldCheck}
-              />
+              <RequireAdmin>
+                <SimplePage
+                  eyebrow="Controls"
+                  title="Governance"
+                  description="Placeholder structure for roles, audit trails, compliance checks, and secure administrative review."
+                  icon={ShieldCheck}
+                />
+              </RequireAdmin>
             ),
           },
           { path: 'settings', element: withRouteSuspense(<SettingsPage />) },

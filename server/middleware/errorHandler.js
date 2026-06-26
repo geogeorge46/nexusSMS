@@ -8,17 +8,22 @@ export function notFound(req, res, next) {
 
 export function errorHandler(error, _req, res, _next) {
   const uploadStatusCode = error.code === 'LIMIT_FILE_SIZE' ? 413 : error.name === 'MulterError' ? 400 : undefined
-  const statusCode = error.statusCode ?? uploadStatusCode ?? (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500)
+  const duplicateStatusCode = error.code === 11000 ? 409 : undefined
+  const statusCode = error.statusCode ?? uploadStatusCode ?? duplicateStatusCode ?? (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500)
+  const duplicateFields = error.code === 11000 ? Object.keys(error.keyPattern ?? error.keyValue ?? {}) : undefined
+  const message = error.code === 11000
+    ? `Duplicate record${duplicateFields?.length ? ` for ${duplicateFields.join(', ')}` : ''}`
+    : error.message || 'Internal server error'
 
-  logger.error(error.message || 'Internal server error', {
+  logger.error(message, {
     statusCode,
     stack: error.stack,
-    details: error.details,
+    details: error.details ?? duplicateFields,
   })
 
   res.status(statusCode).json({
-    message: error.message || 'Internal server error',
-    details: error.details,
+    message,
+    details: error.details ?? duplicateFields,
     stack: process.env.NODE_ENV === 'production' ? undefined : error.stack,
   })
 }

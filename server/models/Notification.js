@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
       userId: { type: String, trim: true, default: '' },
       role: {
         type: String,
-        enum: ['Admin', 'Super Admin'],
+        enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'],
         required: true,
         index: true,
       },

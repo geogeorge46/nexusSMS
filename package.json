@@ -13,7 +13,10 @@
     "preview": "vite preview",
     "healthcheck": "node scripts/healthcheck.js",
     "backup:mongodb": "node scripts/mongodb-backup.js",
-    "seed:admin": "node scripts/create-super-admin.js"
+    "seed:admin": "node scripts/create-super-admin.js",
+    "seed:institution": "node scripts/seed-institution.js",
+    "seed:constraints": "node scripts/seed-constraints.js",
+    "test:constraints": "node scripts/test-constraints.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.0",

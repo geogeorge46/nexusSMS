@@ -11,7 +11,12 @@ export type Course = {
   title: string
   code: string
   department: string
+  program?: string
   faculty: string
+  departmentId?: string
+  programId?: string
+  semesterId?: string
+  facultyStaffId?: string
   credits: number
   status: CourseStatus
   enrolled: number
@@ -38,7 +43,12 @@ export type CoursePayload = Pick<
   | 'title'
   | 'code'
   | 'department'
+  | 'program'
   | 'faculty'
+  | 'departmentId'
+  | 'programId'
+  | 'semesterId'
+  | 'facultyStaffId'
   | 'credits'
   | 'status'
   | 'enrolled'

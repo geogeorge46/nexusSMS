@@ -7,7 +7,9 @@ import { StudentTable } from '@/components/organisms/student-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { getStudentErrorMessage, useStudents, type StudentFilters } from '@/hooks/use-students'
+import { canWriteStudents, isAdmin } from '@/lib/permissions'
 
 const pageSize = 8
 
@@ -22,6 +24,9 @@ export function StudentListPage() {
   const deferredSearch = useDeferredValue(filters.search)
   const queryFilters = { ...filters, search: deferredSearch }
   const { data, error, isError, isFetching, isLoading } = useStudents(queryFilters)
+  const { user } = useAuth()
+  const canManageStudents = canWriteStudents(user)
+  const canDeleteStudents = isAdmin(user)
 
   function updateFilters(nextFilters: Partial<StudentFilters>) {
     setFilters((current) => ({
@@ -37,7 +42,7 @@ export function StudentListPage() {
         eyebrow="Student Management"
         title="Students"
         description="Manage enrollment profiles, academic standing, attendance health, and student records from a searchable table."
-        actions={
+        actions={canManageStudents ? (
           <>
             <Button asChild type="button" variant="glass">
               <Link to="/students/import">
@@ -52,7 +57,7 @@ export function StudentListPage() {
               </Link>
             </Button>
           </>
-        }
+        ) : undefined}
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -84,6 +89,8 @@ export function StudentListPage() {
           onPageChange={(page) => updateFilters({ page })}
           pagination={data?.pagination}
           students={data?.items}
+          canManageStudents={canManageStudents}
+          canDeleteStudents={canDeleteStudents}
         />
       )}
     </div>

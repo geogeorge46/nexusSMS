@@ -10,6 +10,7 @@ import { Sidebar } from '@/components/organisms/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { canWriteStudents } from '@/lib/permissions'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +25,7 @@ export function TopNavbar() {
   const [open, setOpen] = useState(false)
   const { logout, user } = useAuth()
   const initials = getInitials(user?.name ?? 'Campus Admin')
+  const canCreateStudent = canWriteStudents(user)
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/72 px-4 py-3 backdrop-blur-2xl sm:px-6">
@@ -49,12 +51,14 @@ export function TopNavbar() {
             <Sparkles />
             AI Assist
           </Button>
-          <Button asChild className="hidden sm:inline-flex">
-            <Link to="/students/new">
-              <Plus />
-              New Record
-            </Link>
-          </Button>
+          {canCreateStudent && (
+            <Button asChild className="hidden sm:inline-flex">
+              <Link to="/students/new">
+                <Plus />
+                New Record
+              </Link>
+            </Button>
+          )}
 
           <ThemeToggle />
 

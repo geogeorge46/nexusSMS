@@ -19,6 +19,11 @@ export type Student = {
   advisor: string
   phone: string
   address: string
+  departmentId?: string
+  programId?: string
+  academicYearId?: string
+  semesterId?: string
+  batch?: string
   enrolledAt: string
   createdAt?: string
   updatedAt?: string
@@ -35,7 +40,7 @@ export type StudentFilters = {
 export type StudentPayload = Pick<
   Student,
   'name' | 'email' | 'program' | 'department' | 'year' | 'status' | 'advisor' | 'phone' | 'address'
->
+> & Partial<Pick<Student, 'departmentId' | 'programId' | 'academicYearId' | 'semesterId' | 'batch'>>
 
 type StudentListResponse = {
   items: Student[]

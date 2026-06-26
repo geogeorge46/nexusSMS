@@ -14,7 +14,7 @@ const gradeSchema = new mongoose.Schema(
     createdBy: {
       userId: { type: String, required: true },
       name: { type: String, required: true },
-      role: { type: String, enum: ['Admin', 'Super Admin'], required: true },
+      role: { type: String, enum: ['Admin', 'Super Admin', 'Teacher'], required: true },
     },
   },
   { timestamps: true },

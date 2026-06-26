@@ -31,6 +31,6 @@ export function useDeleteGrade() {
   return useMutation({ mutationFn: async (id: string) => api.delete(`/grades/${id}`), onSuccess: () => void client.invalidateQueries({ queryKey: ['grades'] }) })
 }
 export function getGradeErrorMessage(error: unknown) {
-  if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message ?? 'Grade request failed'
+  if (axios.isAxiosError<{ message?: string; details?: string[] }>(error)) return error.response?.data?.details?.join(' ') ?? error.response?.data?.message ?? 'Grade request failed'
   return error instanceof Error ? error.message : 'Grade request failed'
 }

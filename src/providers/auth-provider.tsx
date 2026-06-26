@@ -68,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (payload: LoginPayload) => {
     const session = await loginWithApi(payload)
     setToken(session.token)
-    setUser(session.user)
+    const currentUser = await fetchCurrentUser()
+    saveAuthUser(currentUser)
+    setUser(currentUser)
   }, [])
 
   const logout = useCallback(async () => {

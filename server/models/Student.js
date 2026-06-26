@@ -25,6 +25,11 @@ const studentSchema = new mongoose.Schema(
     program: { type: String, required: true, trim: true },
     department: { type: String, required: true, trim: true },
     year: { type: String, required: true, trim: true },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', index: true },
+    programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program', index: true },
+    academicYearId: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicYear', index: true },
+    semesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Semester', index: true },
+    batch: { type: String, trim: true, default: '' },
     status: {
       type: String,
       enum: ['Active', 'Pending', 'Review', 'Inactive'],
@@ -39,5 +44,7 @@ const studentSchema = new mongoose.Schema(
   },
   { timestamps: true },
 )
+
+studentSchema.index({ departmentId: 1, programId: 1, semesterId: 1 })
 
 export const Student = mongoose.model('Student', studentSchema)

@@ -38,7 +38,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useStudents } from '@/hooks/use-students'
 
-export function StudentDocumentWorkspace() {
+export function StudentDocumentWorkspace({ canManageDocuments }: { canManageDocuments: boolean }) {
   const queryClient = useQueryClient()
   const inputRef = useRef<HTMLInputElement>(null)
   const [category, setCategory] = useState<DocumentCategory>('All')
@@ -128,26 +128,39 @@ export function StudentDocumentWorkspace() {
   return (
     <div className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(340px,0.65fr)]">
-        <UploadPanel
-          files={files}
-          inputRef={inputRef}
-          metadata={metadata}
-          students={studentsQuery.data?.items ?? []}
-          onMetadataChange={setMetadata}
-          onQueueFiles={queueFiles}
-          onRemoveFile={removeQueuedFile}
-          onUpload={runUpload}
-          progress={uploadProgress}
-          uploadCategory={uploadCategory}
-          uploadError={uploadMutation.error ? getStudentDocumentErrorMessage(uploadMutation.error) : ''}
-          uploadPending={uploadMutation.isPending}
-          validationErrors={validationErrors}
-          onUploadCategoryChange={setUploadCategory}
-        />
+        {canManageDocuments ? (
+          <UploadPanel
+            files={files}
+            inputRef={inputRef}
+            metadata={metadata}
+            students={studentsQuery.data?.items ?? []}
+            onMetadataChange={setMetadata}
+            onQueueFiles={queueFiles}
+            onRemoveFile={removeQueuedFile}
+            onUpload={runUpload}
+            progress={uploadProgress}
+            uploadCategory={uploadCategory}
+            uploadError={uploadMutation.error ? getStudentDocumentErrorMessage(uploadMutation.error) : ''}
+            uploadPending={uploadMutation.isPending}
+            validationErrors={validationErrors}
+            onUploadCategoryChange={setUploadCategory}
+          />
+        ) : (
+          <GlassCard className="grid min-h-64 place-items-center p-6 text-center">
+            <div>
+              <ShieldCheck className="mx-auto size-8 text-primary" aria-hidden="true" />
+              <h2 className="mt-4 text-xl font-bold text-foreground">Document access is view-only</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
+                Your staff role can review student documents, but uploads and deletion are restricted to admission, office, accounting, and admin users.
+              </p>
+            </div>
+          </GlassCard>
+        )}
         <DocumentPreview
           document={selectedDocument}
           deleting={deleteMutation.isPending}
           deleteError={deleteMutation.error ? getStudentDocumentErrorMessage(deleteMutation.error) : ''}
+          canDelete={canManageDocuments}
           onDelete={(documentId) => deleteMutation.mutate(documentId)}
           onClose={() => {
             deleteMutation.reset()
@@ -407,10 +420,12 @@ function DocumentPreview({
   deleteError,
   onClose,
   onDelete,
+  canDelete,
 }: {
   document: StudentDocument | null
   deleting: boolean
   deleteError: string
+  canDelete: boolean
   onClose: () => void
   onDelete: (documentId: string) => void
 }) {
@@ -478,15 +493,17 @@ function DocumentPreview({
                   Download
                 </a>
               </Button>
-              <Button
-                disabled={deleting}
-                onClick={() => onDelete(document._id)}
-                type="button"
-                variant="destructive"
-              >
-                {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                Delete
-              </Button>
+              {canDelete && (
+                <Button
+                  disabled={deleting}
+                  onClick={() => onDelete(document._id)}
+                  type="button"
+                  variant="destructive"
+                >
+                  {deleting ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                  Delete
+                </Button>
+              )}
             </div>
             {deleteError && (
               <p className="rounded-[18px] bg-rose-500/10 p-3 text-sm font-semibold text-rose-700 dark:text-rose-300">

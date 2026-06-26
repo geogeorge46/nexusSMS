@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 import { Student } from '../models/Student.js'
+import { validateAdmissionScope } from './institutionService.js'
 
 const validStatuses = new Set(['Active', 'Pending', 'Review', 'Inactive'])
 
@@ -45,8 +46,10 @@ export async function getStudent(studentId) {
 
 export async function createStudent(payload) {
   const normalized = normalizeStudentPayload(payload)
+  const scope = await validateAdmissionScope({ ...payload, ...normalized })
   const student = await Student.create({
     ...normalized,
+    ...scope,
     registerNumber: normalized.registerNumber || await getNextRegisterNumber(),
     enrolledAt: normalized.enrolledAt || new Date(),
   })
@@ -57,18 +60,21 @@ export async function createStudent(payload) {
 export async function updateStudent(studentId, payload) {
   const normalized = normalizeStudentPayload(payload, { partial: true })
   delete normalized.registerNumber
+  const existing = await Student.findOne(buildStudentIdentifierQuery(studentId)).lean()
 
-  const student = await Student.findOneAndUpdate(
-    buildStudentIdentifierQuery(studentId),
-    { $set: normalized },
-    { new: true, runValidators: true },
-  ).lean()
-
-  if (!student) {
+  if (!existing) {
     const error = new Error('Student not found')
     error.statusCode = 404
     throw error
   }
+
+  const scope = await validateAdmissionScope({ ...existing, ...payload, ...normalized }, { partial: true })
+
+  const student = await Student.findOneAndUpdate(
+    { _id: existing._id },
+    { $set: { ...normalized, ...scope } },
+    { new: true, runValidators: true },
+  ).lean()
 
   return serializeStudent(student)
 }
@@ -126,6 +132,11 @@ function normalizeStudentPayload(payload, options = {}) {
     program: cleanString(payload.program),
     department: cleanString(payload.department),
     year: cleanString(payload.year),
+    departmentId: payload.departmentId,
+    programId: payload.programId,
+    academicYearId: payload.academicYearId,
+    semesterId: payload.semesterId,
+    batch: cleanString(payload.batch),
     status: validStatuses.has(payload.status) ? payload.status : undefined,
     attendance: normalizeNumber(payload.attendance),
     gpa: normalizeNumber(payload.gpa),
@@ -187,6 +198,11 @@ function serializeStudent(student) {
     advisor: source.advisor,
     phone: source.phone,
     address: source.address,
+    departmentId: source.departmentId?.toString?.() ?? '',
+    programId: source.programId?.toString?.() ?? '',
+    academicYearId: source.academicYearId?.toString?.() ?? '',
+    semesterId: source.semesterId?.toString?.() ?? '',
+    batch: source.batch ?? '',
     enrolledAt: formatDate(source.enrolledAt),
     createdAt: source.createdAt,
     updatedAt: source.updatedAt,

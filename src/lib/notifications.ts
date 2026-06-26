@@ -1,7 +1,7 @@
 import { api } from '@/lib/api'
 import axios from 'axios'
 
-export type UserRole = 'Admin' | 'Super Admin'
+export type UserRole = 'Admin' | 'Super Admin' | 'Teacher' | 'Staff' | 'Student'
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'system'
 
 export type NexusNotification = {

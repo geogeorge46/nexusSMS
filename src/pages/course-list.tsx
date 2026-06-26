@@ -7,7 +7,9 @@ import { CourseTable } from '@/components/organisms/course-table'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, GlassCard } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
 import { getCourseErrorMessage, useCourses, type CourseFilters } from '@/hooks/use-courses'
+import { canManageCourses } from '@/lib/permissions'
 
 const pageSize = 7
 
@@ -22,6 +24,8 @@ export function CourseListPage() {
   const deferredSearch = useDeferredValue(filters.search)
   const queryFilters = { ...filters, search: deferredSearch }
   const { data, error, isError, isFetching, isLoading } = useCourses(queryFilters)
+  const { user } = useAuth()
+  const canManage = canManageCourses(user)
 
   function updateFilters(nextFilters: Partial<CourseFilters>) {
     setFilters((current) => ({
@@ -37,14 +41,14 @@ export function CourseListPage() {
         eyebrow="Course Management"
         title="Courses"
         description="Manage catalog records, enrollment demand, faculty ownership, credits, and course status from one responsive workspace."
-        actions={
+        actions={canManage ? (
           <Button asChild type="button">
             <Link to="/courses/new">
               <Plus />
               Add Course
             </Link>
           </Button>
-        }
+        ) : undefined}
       />
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -76,6 +80,7 @@ export function CourseListPage() {
           onFiltersChange={updateFilters}
           onPageChange={(page) => updateFilters({ page })}
           pagination={data?.pagination}
+          canManageCourses={canManage}
         />
       )}
     </div>

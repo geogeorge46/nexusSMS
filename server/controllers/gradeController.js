@@ -14,7 +14,7 @@ export async function postGrade(req, res) {
 }
 
 export async function patchGrade(req, res) {
-  const grade = await updateGrade(req.params.gradeId, req.body)
+  const grade = await updateGrade(req.params.gradeId, req.body, req.user)
   await audit(req, 'GRADE_UPDATE', `${req.user.name} updated a grade for ${grade.student}`, grade)
   res.json({ grade })
 }

@@ -14,6 +14,7 @@ import { auditLogRouter } from './routes/auditLogRoutes.js'
 import { adminRouter } from './routes/adminRoutes.js'
 import { attendanceRouter } from './routes/attendanceRoutes.js'
 import { authRouter } from './routes/authRoutes.js'
+import { catalogRouter } from './routes/catalogRoutes.js'
 import { courseRouter } from './routes/courseRoutes.js'
 import { dashboardRouter } from './routes/dashboardRoutes.js'
 import { gradeRouter } from './routes/gradeRoutes.js'
@@ -92,6 +93,7 @@ app.get('/api/ready', (_req, res) => {
 
 app.use('/api/auth', authRouter)
 app.use('/api/admins', adminRouter)
+app.use('/api/catalog', catalogRouter)
 app.use('/api/students/import', studentImportRouter)
 app.use('/api/students', studentRouter)
 app.use('/api/courses', courseRouter)

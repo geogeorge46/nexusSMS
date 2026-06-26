@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import { Course } from '../models/Course.js'
 import { Grade } from '../models/Grade.js'
 import { Student } from '../models/Student.js'
+import { ensureEnrollment, ensureTeacherAssigned } from './institutionService.js'
 
 const populate = (query) => query
   .populate('studentId', 'name registerNumber department')
@@ -25,6 +26,8 @@ export async function getGrade(id) {
 
 export async function createGrade(payload, user) {
   const values = await normalize(payload)
+  await ensureEnrollment(values.studentId, values.courseId)
+  await ensureTeacherAssigned(user, values.courseId)
 
   if (await Grade.exists(uniqueKey(values))) {
     throw httpError(409, 'A grade already exists for this assessment')
@@ -38,12 +41,14 @@ export async function createGrade(payload, user) {
   return getGrade(record._id)
 }
 
-export async function updateGrade(id, payload) {
+export async function updateGrade(id, payload, user) {
   const current = await Grade.findById(id).lean()
 
   if (!current) throw httpError(404, 'Grade not found')
 
   const values = await normalize({ ...current, ...payload })
+  await ensureEnrollment(values.studentId, values.courseId)
+  await ensureTeacherAssigned(user, values.courseId)
   const duplicate = await Grade.exists({ ...uniqueKey(values), _id: { $ne: id } })
 
   if (duplicate) throw httpError(409, 'A grade already exists for this assessment')

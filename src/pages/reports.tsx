@@ -15,6 +15,8 @@ import {
   type ReportFormat,
   type ReportType,
 } from '@/lib/reports-api'
+import { useAuth } from '@/hooks/use-auth'
+import { canUseAcademicTools, isAdmin } from '@/lib/permissions'
 
 const initialFilters: ReportFilters = {
   dateFrom: '',
@@ -33,6 +35,11 @@ export function ReportsPage() {
   const [filters, setFilters] = useState<ReportFilters>(initialFilters)
   const [exporting, setExporting] = useState<ReportFormat | null>(null)
   const [exportError, setExportError] = useState('')
+  const { user } = useAuth()
+  const allowedTypes: ReportType[] = canUseAcademicTools(user)
+    ? ['students', 'attendance', 'grades', 'courses']
+    : ['students', 'courses']
+  const canExport = isAdmin(user)
   const reportQuery = useQuery({
     queryKey: ['reports', type, filters],
     queryFn: () => fetchReport(type, filters),
@@ -44,7 +51,7 @@ export function ReportsPage() {
   }
 
   function changeType(nextType: ReportType) {
-    setType(nextType)
+    setType(allowedTypes.includes(nextType) ? nextType : allowedTypes[0])
     setFilters(initialFilters)
     setExportError('')
   }
@@ -67,7 +74,7 @@ export function ReportsPage() {
         eyebrow="Reports"
         title="Reports Center"
         description="Generate, review, and export student management reports for enrollment, attendance, grades, and course planning."
-        actions={
+        actions={canExport ? (
           <div className="flex flex-wrap items-center gap-2">
             <Button disabled={Boolean(exporting)} onClick={() => void runExport('pdf')} type="button" variant="glass">
               <FileText />
@@ -82,7 +89,7 @@ export function ReportsPage() {
               {exporting === 'csv' ? 'Exporting...' : 'CSV'}
             </Button>
           </div>
-        }
+        ) : undefined}
       />
 
       {exportError && (
@@ -118,6 +125,7 @@ export function ReportsPage() {
         onFiltersChange={updateFilters}
         onTypeChange={changeType}
         type={type}
+        allowedTypes={allowedTypes}
       />
     </div>
   )

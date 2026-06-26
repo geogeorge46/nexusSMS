@@ -18,7 +18,12 @@ const courseSchema = new mongoose.Schema(
       index: true,
     },
     department: { type: String, required: true, trim: true, index: true },
+    program: { type: String, trim: true, default: '' },
     faculty: { type: String, required: true, trim: true },
+    departmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Department', index: true },
+    programId: { type: mongoose.Schema.Types.ObjectId, ref: 'Program', index: true },
+    semesterId: { type: mongoose.Schema.Types.ObjectId, ref: 'Semester', index: true },
+    facultyStaffId: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff', index: true },
     credits: { type: Number, required: true, min: 0, max: 10 },
     status: {
       type: String,
@@ -37,5 +42,6 @@ const courseSchema = new mongoose.Schema(
 )
 
 courseSchema.index({ title: 'text', code: 'text', courseNumber: 'text', department: 'text', faculty: 'text' })
+courseSchema.index({ departmentId: 1, programId: 1, semesterId: 1, code: 1 }, { unique: true, sparse: true })
 
 export const Course = mongoose.model('Course', courseSchema)

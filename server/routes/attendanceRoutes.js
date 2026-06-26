@@ -7,12 +7,12 @@ import {
   postAttendanceMark,
   removeAttendance,
 } from '../controllers/attendanceController.js'
-import { requireAdmin } from '../middleware/requestContext.js'
+import { requireAcademicAccess } from '../middleware/requestContext.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 
 export const attendanceRouter = Router()
 
-attendanceRouter.use(requireAdmin)
+attendanceRouter.use(requireAcademicAccess)
 attendanceRouter.get('/', asyncHandler(getAttendance))
 attendanceRouter.get('/summary', asyncHandler(getAttendanceSummaryController))
 attendanceRouter.post('/mark', asyncHandler(postAttendanceMark))

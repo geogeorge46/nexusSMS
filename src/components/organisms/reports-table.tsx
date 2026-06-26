@@ -20,10 +20,12 @@ type ReportsTableProps = {
   onFiltersChange: (filters: Partial<ReportFilters>) => void
   onTypeChange: (type: ReportType) => void
   type: ReportType
+  allowedTypes: ReportType[]
 }
 
-export function ReportsTable({ data, errorMessage, filters, isLoading, onFiltersChange, onTypeChange, type }: ReportsTableProps) {
+export function ReportsTable({ data, errorMessage, filters, isLoading, onFiltersChange, onTypeChange, type, allowedTypes }: ReportsTableProps) {
   const options = data?.filterOptions
+  const visibleReportTypes = reportTypes.filter((item) => allowedTypes.includes(item.value))
 
   return (
     <Card>
@@ -33,7 +35,7 @@ export function ReportsTable({ data, errorMessage, filters, isLoading, onFilters
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <ReportSelect label="Report type" onChange={(value) => onTypeChange(value as ReportType)} options={reportTypes} value={type} />
+          <ReportSelect label="Report type" onChange={(value) => onTypeChange(value as ReportType)} options={visibleReportTypes} value={type} />
           <ReportSelect label="Department" onChange={(department) => onFiltersChange({ department })} options={selectOptions(options?.departments)} value={filters.department} />
           <ReportSelect label="Course" onChange={(course) => onFiltersChange({ course })} options={options?.courses ?? []} value={filters.course} />
           <ReportSelect label="Semester" onChange={(semester) => onFiltersChange({ semester })} options={selectOptions(options?.semesters)} value={filters.semester} />

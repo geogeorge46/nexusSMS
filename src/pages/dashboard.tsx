@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardData, type DashboardData } from '@/hooks/use-dashboard-data'
+import { useAuth } from '@/hooks/use-auth'
+import { canWriteStudents } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 type StatTone = 'blue' | 'green' | 'violet' | 'amber'
@@ -90,6 +92,8 @@ function DashboardHero({
   data?: DashboardData
   isLoading: boolean
 }) {
+  const { user } = useAuth()
+
   return (
     <motion.section variants={reveal}>
       <GlassCard className="relative overflow-hidden p-5 sm:p-6 lg:p-7">
@@ -121,10 +125,12 @@ function DashboardHero({
               </>
             )}
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button type="button">
-                <Plus />
-                New Student
-              </Button>
+              {canWriteStudents(user) && (
+                <Button type="button">
+                  <Plus />
+                  New Student
+                </Button>
+              )}
               <Button type="button" variant="glass">
                 <BarChart3 />
                 View Reports

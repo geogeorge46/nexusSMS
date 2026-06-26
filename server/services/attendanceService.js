@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import { Attendance } from '../models/Attendance.js'
 import { Course } from '../models/Course.js'
 import { Student } from '../models/Student.js'
+import { StudentCourse } from '../models/StudentCourse.js'
+import { ensureEnrollment, ensureTeacherAssigned } from './institutionService.js'
 
 const validStatuses = new Set(['Present', 'Absent', 'Late', 'Excused'])
 
@@ -41,6 +43,8 @@ export async function getAttendanceSummary(filters = {}) {
 
 export async function markAttendance(payload, user) {
   const normalized = await normalizeAttendancePayload(payload)
+  await ensureEnrollment(normalized.studentId, normalized.courseId)
+  await ensureTeacherAssigned(user, normalized.courseId)
   const existing = await Attendance.findOne({
     studentId: normalized.studentId,
     courseId: normalized.courseId,
@@ -68,6 +72,19 @@ export async function markAttendance(payload, user) {
 
 export async function updateAttendance(attendanceId, payload, user) {
   const normalized = await normalizeAttendancePayload(payload, { partial: true })
+  const current = await Attendance.findById(attendanceId).lean()
+
+  if (!current) {
+    const error = new Error('Attendance record not found')
+    error.statusCode = 404
+    throw error
+  }
+
+  const nextStudentId = normalized.studentId ?? current.studentId
+  const nextCourseId = normalized.courseId ?? current.courseId
+  await ensureEnrollment(nextStudentId, nextCourseId)
+  await ensureTeacherAssigned(user, nextCourseId)
+
   const attendance = await Attendance.findByIdAndUpdate(
     attendanceId,
     {
@@ -82,12 +99,6 @@ export async function updateAttendance(attendanceId, payload, user) {
     },
     { new: true, runValidators: true },
   ).lean()
-
-  if (!attendance) {
-    const error = new Error('Attendance record not found')
-    error.statusCode = 404
-    throw error
-  }
 
   return getSerializedAttendance(attendance._id)
 }
@@ -218,13 +229,22 @@ async function resolveCourseId(value) {
 
 async function buildRoster(filters) {
   const studentQuery = {}
+  const course = filters.course && filters.course !== 'All'
+    ? await Course.findOne(buildCourseLookup(filters.course)).select('title courseNumber').lean()
+    : await Course.findOne().sort({ createdAt: -1 }).select('title courseNumber').lean()
+
+  if (!course) return []
+
+  const enrollments = await StudentCourse.find({ courseId: course._id, status: 'Enrolled' }).select('studentId').lean()
+  studentQuery._id = { $in: enrollments.map((enrollment) => enrollment.studentId) }
 
   if (filters.department && filters.department !== 'All') {
     studentQuery.department = filters.department
   }
 
   if (filters.student && filters.student !== 'All') {
-    studentQuery._id = await resolveStudentId(filters.student)
+    const studentId = await resolveStudentId(filters.student)
+    studentQuery._id = { $in: enrollments.map((enrollment) => enrollment.studentId).filter((id) => id.toString() === studentId.toString()) }
   }
 
   const students = await Student.find(studentQuery)
@@ -232,9 +252,6 @@ async function buildRoster(filters) {
     .limit(50)
     .select('name registerNumber year')
     .lean()
-  const course = filters.course && filters.course !== 'All'
-    ? await Course.findOne(buildCourseLookup(filters.course)).select('title courseNumber').lean()
-    : await Course.findOne().sort({ createdAt: -1 }).select('title courseNumber').lean()
   const existingRecords = course && filters.date
     ? await Attendance.find({
         courseId: course._id,

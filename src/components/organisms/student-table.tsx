@@ -26,6 +26,8 @@ export function StudentTable({
   onFiltersChange,
   onPageChange,
   pagination,
+  canManageStudents,
+  canDeleteStudents,
 }: {
   filters: StudentFilters
   students?: Student[]
@@ -39,6 +41,8 @@ export function StudentTable({
     total: number
     pages: number
   }
+  canManageStudents: boolean
+  canDeleteStudents: boolean
 }) {
   const currentPage = pagination?.page ?? filters.page
   const pageCount = pagination?.pages ?? 1
@@ -97,8 +101,8 @@ export function StudentTable({
           <StudentTableSkeleton />
         ) : (
           <>
-            <DesktopTable students={students} />
-            <MobileCards students={students} />
+            <DesktopTable students={students} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
+            <MobileCards students={students} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-muted-foreground">
                 {isFetching ? 'Refreshing students...' : `Showing ${students.length} of ${total} students`}
@@ -164,7 +168,7 @@ function FilterSelect({
   )
 }
 
-function DesktopTable({ students }: { students: Student[] }) {
+function DesktopTable({ students, canManageStudents, canDeleteStudents }: { students: Student[]; canManageStudents: boolean; canDeleteStudents: boolean }) {
   return (
     <div className="hidden overflow-hidden rounded-[20px] border border-border/70 lg:block">
       <table className="w-full border-collapse text-left">
@@ -193,7 +197,7 @@ function DesktopTable({ students }: { students: Student[] }) {
                 <StudentStatusBadge status={student.status} />
               </td>
               <td className="px-4 py-4 text-right">
-                <StudentActions student={student} />
+                <StudentActions student={student} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
               </td>
             </tr>
           ))}
@@ -204,14 +208,14 @@ function DesktopTable({ students }: { students: Student[] }) {
   )
 }
 
-function MobileCards({ students }: { students: Student[] }) {
+function MobileCards({ students, canManageStudents, canDeleteStudents }: { students: Student[]; canManageStudents: boolean; canDeleteStudents: boolean }) {
   return (
     <div className="grid gap-3 lg:hidden">
       {students.map((student) => (
         <div key={student.id} className="rounded-[20px] border border-border/70 bg-background/50 p-4">
           <div className="flex items-start justify-between gap-3">
             <StudentIdentity student={student} />
-            <StudentActions student={student} />
+            <StudentActions student={student} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
           </div>
           <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <MobileFact label="Program" value={student.program} />
@@ -242,7 +246,7 @@ function StudentIdentity({ student }: { student: Student }) {
   )
 }
 
-function StudentActions({ student }: { student: Student }) {
+function StudentActions({ student, canManageStudents, canDeleteStudents }: { student: Student; canManageStudents: boolean; canDeleteStudents: boolean }) {
   const deleteStudent = useDeleteStudent()
 
   async function handleDelete() {
@@ -270,17 +274,25 @@ function StudentActions({ student }: { student: Student }) {
             View Profile
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to={`/students/${student.id}/edit`}>
-            <Pencil className="size-4" />
-            Edit Student
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled={deleteStudent.isPending} onClick={() => void handleDelete()}>
-          <Trash2 className="size-4" />
-          Delete Student
-        </DropdownMenuItem>
+        {canManageStudents && (
+          <>
+            <DropdownMenuItem asChild>
+              <Link to={`/students/${student.id}/edit`}>
+                <Pencil className="size-4" />
+                Edit Student
+              </Link>
+            </DropdownMenuItem>
+            {canDeleteStudents && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled={deleteStudent.isPending} onClick={() => void handleDelete()}>
+                  <Trash2 className="size-4" />
+                  Delete Student
+                </DropdownMenuItem>
+              </>
+            )}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

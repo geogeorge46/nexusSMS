@@ -1,6 +1,7 @@
 import mongoose from 'mongoose'
 
 import { Course } from '../models/Course.js'
+import { validateCourseScope } from './institutionService.js'
 
 const validStatuses = new Set(['Active', 'Inactive'])
 
@@ -45,8 +46,10 @@ export async function getCourse(courseId) {
 
 export async function createCourse(payload) {
   const normalized = normalizeCoursePayload(payload)
+  const scope = await validateCourseScope({ ...payload, ...normalized })
   const course = await Course.create({
     ...normalized,
+    ...scope,
     courseNumber: normalized.courseNumber || await getNextCourseNumber(),
   })
 
@@ -74,9 +77,11 @@ export async function updateCourse(courseId, payload) {
     throw error
   }
 
+  const scope = await validateCourseScope({ ...existing, ...payload, ...normalized }, { partial: true })
+
   const course = await Course.findByIdAndUpdate(
     existing._id,
-    { $set: normalized },
+    { $set: { ...normalized, ...scope } },
     { new: true, runValidators: true },
   ).lean()
 
@@ -135,7 +140,12 @@ function normalizeCoursePayload(payload, options = {}) {
     title: cleanString(payload.title),
     code: cleanString(payload.code),
     department: cleanString(payload.department),
+    program: cleanString(payload.program),
     faculty: cleanString(payload.faculty),
+    departmentId: payload.departmentId,
+    programId: payload.programId,
+    semesterId: payload.semesterId,
+    facultyStaffId: payload.facultyStaffId ?? payload.staffId,
     credits: normalizeNumber(payload.credits),
     status: validStatuses.has(payload.status) ? payload.status : undefined,
     enrolled: normalizeNumber(payload.enrolled),
@@ -206,7 +216,12 @@ function serializeCourse(course) {
     title: source.title,
     code: source.code,
     department: source.department,
+    program: source.program ?? '',
     faculty: source.faculty,
+    departmentId: source.departmentId?.toString?.() ?? '',
+    programId: source.programId?.toString?.() ?? '',
+    semesterId: source.semesterId?.toString?.() ?? '',
+    facultyStaffId: source.facultyStaffId?.toString?.() ?? '',
     credits: source.credits,
     status: source.status,
     enrolled: source.enrolled,

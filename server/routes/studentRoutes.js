@@ -7,14 +7,14 @@ import {
   postStudent,
   removeStudent,
 } from '../controllers/studentController.js'
-import { requireAdmin } from '../middleware/requestContext.js'
+import { requireAdmin, requireAuthenticated, requireStudentWriteAccess } from '../middleware/requestContext.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
 
 export const studentRouter = Router()
 
-studentRouter.use(requireAdmin)
+studentRouter.use(requireAuthenticated)
 studentRouter.get('/', asyncHandler(getStudents))
-studentRouter.post('/', asyncHandler(postStudent))
+studentRouter.post('/', requireStudentWriteAccess, asyncHandler(postStudent))
 studentRouter.get('/:studentId', asyncHandler(getStudentById))
-studentRouter.patch('/:studentId', asyncHandler(patchStudent))
-studentRouter.delete('/:studentId', asyncHandler(removeStudent))
+studentRouter.patch('/:studentId', requireStudentWriteAccess, asyncHandler(patchStudent))
+studentRouter.delete('/:studentId', requireAdmin, asyncHandler(removeStudent))
