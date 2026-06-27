@@ -16,28 +16,32 @@ export function isStaff(user?: AuthUser | null) {
   return user?.role === 'Staff'
 }
 
+export function isStudent(user?: AuthUser | null) {
+  return user?.role === 'Student'
+}
+
 export function staffDesignation(user?: AuthUser | null) {
   return user?.staff?.designation ?? ''
 }
 
 export function canWriteStudents(user?: AuthUser | null) {
-  return isAdmin(user) || (isStaff(user) && studentWriters.has(staffDesignation(user)))
+  return !isStudent(user) && (isAdmin(user) || (isStaff(user) && studentWriters.has(staffDesignation(user))))
 }
 
 export function canWriteDocuments(user?: AuthUser | null) {
-  return isAdmin(user) || (isStaff(user) && documentWriters.has(staffDesignation(user)))
+  return !isStudent(user) && (isAdmin(user) || (isStaff(user) && documentWriters.has(staffDesignation(user))))
 }
 
 export function canManageCourses(user?: AuthUser | null) {
-  return isAdmin(user)
+  return !isStudent(user) && isAdmin(user)
 }
 
 export function canManageInstitution(user?: AuthUser | null) {
-  return isAdmin(user)
+  return !isStudent(user) && isAdmin(user)
 }
 
 export function canUseAcademicTools(user?: AuthUser | null) {
-  return isAdmin(user) || isTeacher(user)
+  return !isStudent(user) && (isAdmin(user) || isTeacher(user))
 }
 
 export function canViewInstitutionModule(user: AuthUser | null | undefined, module: string) {

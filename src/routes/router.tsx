@@ -14,12 +14,14 @@ import {
   RequireAuth,
   RequireCourseManager,
   RequireCourseViewer,
+  RequireNonStudent,
   RequireReports,
+  RequireStudentPortal,
   RequireStudentWriter,
   RequireSuperAdmin,
 } from '@/routes/auth-gates'
 
-const DashboardPage = lazyPage(() => import('@/pages/dashboard'), 'DashboardPage')
+const HomePage = lazyPage(() => import('@/pages/home'), 'HomePage')
 const LoginPage = lazyPage(() => import('@/pages/login'), 'LoginPage')
 const StudentListPage = lazyPage(() => import('@/pages/student-list'), 'StudentListPage')
 const AddStudentPage = lazyPage(() => import('@/pages/add-student'), 'AddStudentPage')
@@ -43,6 +45,15 @@ const AuditLogsPage = lazyPage(() => import('@/pages/audit-logs'), 'AuditLogsPag
 const SettingsPage = lazyPage(() => import('@/pages/settings'), 'SettingsPage')
 const AdminManagementPage = lazyPage(() => import('@/pages/admin-management'), 'AdminManagementPage')
 const InstitutionalModulePage = lazyPage(() => import('@/pages/institutional-module'), 'InstitutionalModulePage')
+const MyProfilePage = lazyPage(() => import('@/pages/my-profile'), 'MyProfilePage')
+const MyCoursesPage = lazyPage(() => import('@/pages/my-courses'), 'MyCoursesPage')
+const MyTimetablePage = lazyPage(() => import('@/pages/my-timetable'), 'MyTimetablePage')
+const MyAttendancePage = lazyPage(() => import('@/pages/my-attendance'), 'MyAttendancePage')
+const MyGradesPage = lazyPage(() => import('@/pages/my-grades'), 'MyGradesPage')
+const MyDocumentsPage = lazyPage(() => import('@/pages/my-documents'), 'MyDocumentsPage')
+const NotificationsPage = lazyPage(() => import('@/pages/notifications'), 'NotificationsPage')
+const AcademicCalendarPage = lazyPage(() => import('@/pages/academic-calendar'), 'AcademicCalendarPage')
+const HelpSupportPage = lazyPage(() => import('@/pages/help-support'), 'HelpSupportPage')
 
 export const router = createBrowserRouter([
   {
@@ -61,12 +72,21 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         errorElement: <NotFoundPage />,
         children: [
-          { index: true, element: withRouteSuspense(<DashboardPage />) },
-          { path: 'students', element: withRouteSuspense(<StudentListPage />) },
+          { index: true, element: withRouteSuspense(<HomePage />) },
+          { path: 'my-profile', element: <RequireStudentPortal>{withRouteSuspense(<MyProfilePage />)}</RequireStudentPortal> },
+          { path: 'my-courses', element: <RequireStudentPortal>{withRouteSuspense(<MyCoursesPage />)}</RequireStudentPortal> },
+          { path: 'my-timetable', element: <RequireStudentPortal>{withRouteSuspense(<MyTimetablePage />)}</RequireStudentPortal> },
+          { path: 'my-attendance', element: <RequireStudentPortal>{withRouteSuspense(<MyAttendancePage />)}</RequireStudentPortal> },
+          { path: 'my-grades', element: <RequireStudentPortal>{withRouteSuspense(<MyGradesPage />)}</RequireStudentPortal> },
+          { path: 'my-documents', element: <RequireStudentPortal>{withRouteSuspense(<MyDocumentsPage />)}</RequireStudentPortal> },
+          { path: 'notifications', element: <RequireStudentPortal>{withRouteSuspense(<NotificationsPage />)}</RequireStudentPortal> },
+          { path: 'academic-calendar', element: <RequireStudentPortal>{withRouteSuspense(<AcademicCalendarPage />)}</RequireStudentPortal> },
+          { path: 'help-support', element: <RequireStudentPortal>{withRouteSuspense(<HelpSupportPage />)}</RequireStudentPortal> },
+          { path: 'students', element: <RequireNonStudent>{withRouteSuspense(<StudentListPage />)}</RequireNonStudent> },
           { path: 'students/new', element: <RequireStudentWriter>{withRouteSuspense(<AddStudentPage />)}</RequireStudentWriter> },
           { path: 'students/import', element: <RequireStudentWriter>{withRouteSuspense(<StudentImportPage />)}</RequireStudentWriter> },
-          { path: 'documents', element: withRouteSuspense(<StudentDocumentsPage />) },
-          { path: 'students/:studentId', element: withRouteSuspense(<StudentProfilePage />) },
+          { path: 'documents', element: <RequireNonStudent>{withRouteSuspense(<StudentDocumentsPage />)}</RequireNonStudent> },
+          { path: 'students/:studentId', element: <RequireNonStudent>{withRouteSuspense(<StudentProfilePage />)}</RequireNonStudent> },
           { path: 'students/:studentId/edit', element: <RequireStudentWriter>{withRouteSuspense(<EditStudentPage />)}</RequireStudentWriter> },
           { path: 'courses', element: <RequireCourseViewer>{withRouteSuspense(<CourseListPage />)}</RequireCourseViewer> },
           { path: 'courses/new', element: <RequireCourseManager>{withRouteSuspense(<AddCoursePage />)}</RequireCourseManager> },
@@ -75,9 +95,9 @@ export const router = createBrowserRouter([
           { path: 'attendance', element: <RequireAcademicTools>{withRouteSuspense(<AttendanceDashboardPage />)}</RequireAcademicTools> },
           { path: 'attendance/mark', element: <RequireAcademicTools>{withRouteSuspense(<MarkAttendancePage />)}</RequireAcademicTools> },
           { path: 'grades', element: <RequireAcademicTools>{withRouteSuspense(<GradeManagementPage />)}</RequireAcademicTools> },
-          { path: 'reports', element: <RequireReports>{withRouteSuspense(<ReportsPage />)}</RequireReports> },
+          { path: 'reports', element: <RequireNonStudent><RequireReports>{withRouteSuspense(<ReportsPage />)}</RequireReports></RequireNonStudent> },
           { path: 'analytics', element: <RequireAdmin>{withRouteSuspense(<AnalyticsPage />)}</RequireAdmin> },
-          { path: 'institution/:module', element: withRouteSuspense(<InstitutionalModulePage />) },
+          { path: 'institution/:module', element: <RequireNonStudent>{withRouteSuspense(<InstitutionalModulePage />)}</RequireNonStudent> },
           { path: 'audit-logs', element: <RequireAdmin>{withRouteSuspense(<AuditLogsPage />)}</RequireAdmin> },
           {
             path: 'admins',

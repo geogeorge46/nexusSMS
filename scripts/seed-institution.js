@@ -23,6 +23,7 @@ import { hashPassword } from '../server/services/passwordService.js'
 
 const seedPassword = 'Teacher@12345'
 const adminPassword = 'Admin@12345'
+const studentPassword = 'Student@12345'
 const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase() ?? 'admin@nexus.com'
 
 try {
@@ -38,6 +39,7 @@ try {
   const staff = await seedStaff(departments, teacherUsers)
   const courses = await seedCourses(departments, programs, semesters, staff)
   const students = await seedStudents(departments, programs, academicYears, semesters, staff)
+  await seedStudentUsers(students)
   await seedCourseAssignments(courses, academicYears, semesters, staff)
   await seedEnrollments(students, courses, academicYears, semesters)
   await syncCourseCounts(courses)
@@ -50,6 +52,7 @@ try {
   console.log('Full Nexus SMS demo data ready')
   console.log(`Admin demo accounts: ${adminEmail} and qa.admin@nexus.local`)
   console.log(`Teacher demo password: ${seedPassword}`)
+  console.log(`Student demo password: ${studentPassword}`)
 } catch (error) {
   console.error('Failed to seed full Nexus SMS demo data:')
   console.error(error instanceof Error ? error.message : error)
@@ -269,11 +272,11 @@ async function seedCourses(departments, programs, semesters, staff) {
 
 async function seedStudents(departments, programs, academicYears, semesters, staff) {
   const rows = [
-    { registerNumber: 'STU-1001', name: 'Aarav Sharma', email: 'aarav.sharma@nexus.local', program: 'BTECH-CSE', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00001', address: 'Nexus Campus Hostel A-104', attendance: 92, gpa: 3.72 },
-    { registerNumber: 'STU-1002', name: 'Maya Iyer', email: 'maya.iyer@nexus.local', program: 'BTECH-AIML', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00002', address: '18 Lake View Road, Bengaluru', attendance: 88, gpa: 3.54 },
-    { registerNumber: 'STU-1003', name: 'Vihaan Reddy', email: 'vihaan.reddy@nexus.local', program: 'BTECH-ECE', department: 'ECE', semester: '2026-S1', advisor: 'kabir', phone: '+91 90000 00003', address: 'Nexus Campus Hostel B-208', attendance: 81, gpa: 3.18 },
-    { registerNumber: 'STU-1004', name: 'Nisha Kapoor', email: 'nisha.kapoor@nexus.local', program: 'MBA', department: 'MGT', semester: '2026-S1', advisor: 'leela', phone: '+91 90000 00004', address: '42 Market Street, Pune', attendance: 95, gpa: 3.86 },
-    { registerNumber: 'STU-1005', name: 'Ishaan Verma', email: 'ishaan.verma@nexus.local', program: 'BTECH-CSE', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00005', address: 'Nexus Campus Hostel C-301', attendance: 76, gpa: 2.94 },
+    { registerNumber: 'STU-1001', name: 'Aarav Sharma', email: 'aarav.sharma@nexus.local', program: 'BTECH-CSE', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00001', address: 'Nexus Campus Hostel A-104', attendance: 92, gpa: 3.72, status: 'Active', guardianName: 'Meera Sharma', guardianPhone: '+91 90000 90001', emergencyContact: '+91 90000 80001', bloodGroup: 'B+' },
+    { registerNumber: 'STU-1002', name: 'Maya Iyer', email: 'maya.iyer@nexus.local', program: 'BTECH-AIML', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00002', address: '18 Lake View Road, Bengaluru', attendance: 88, gpa: 3.54, status: 'Active', guardianName: 'Raman Iyer', guardianPhone: '+91 90000 90002', emergencyContact: '+91 90000 80002', bloodGroup: 'O+' },
+    { registerNumber: 'STU-1003', name: 'Vihaan Reddy', email: 'vihaan.reddy@nexus.local', program: 'BTECH-ECE', department: 'ECE', semester: '2026-S1', advisor: 'kabir', phone: '+91 90000 00003', address: 'Nexus Campus Hostel B-208', attendance: 81, gpa: 3.18, status: 'Active', guardianName: 'Suma Reddy', guardianPhone: '+91 90000 90003', emergencyContact: '+91 90000 80003', bloodGroup: 'A+' },
+    { registerNumber: 'STU-1004', name: 'Nisha Kapoor', email: 'nisha.kapoor@nexus.local', program: 'MBA', department: 'MGT', semester: '2026-S1', advisor: 'leela', phone: '+91 90000 00004', address: '42 Market Street, Pune', attendance: 95, gpa: 3.86, status: 'Review', guardianName: 'Arjun Kapoor', guardianPhone: '+91 90000 90004', emergencyContact: '+91 90000 80004', bloodGroup: 'AB+' },
+    { registerNumber: 'STU-1005', name: 'Ishaan Verma', email: 'ishaan.verma@nexus.local', program: 'BTECH-CSE', department: 'CSE', semester: '2026-S1', advisor: 'ananya', phone: '+91 90000 00005', address: 'Nexus Campus Hostel C-301', attendance: 76, gpa: 2.94, status: 'Inactive', guardianName: 'Neha Verma', guardianPhone: '+91 90000 90005', emergencyContact: '+91 90000 80005', bloodGroup: 'O-' },
   ]
 
   return Object.fromEntries(await Promise.all(rows.map(async (row) => {
@@ -292,12 +295,18 @@ async function seedStudents(departments, programs, academicYears, semesters, sta
           academicYearId: academicYears['2026-2027']._id,
           semesterId: semesters[row.semester]._id,
           batch: semesters[row.semester].name,
-          status: 'Active',
+          status: row.status,
           attendance: row.attendance,
           gpa: row.gpa,
           advisor: staff[row.advisor].name,
           phone: row.phone,
           address: row.address,
+          guardianName: row.guardianName,
+          guardianPhone: row.guardianPhone,
+          emergencyContact: row.emergencyContact,
+          bloodGroup: row.bloodGroup,
+          skills: ['Communication', 'Problem Solving'],
+          achievements: row.status === 'Active' ? ['Orientation completed'] : [],
           enrolledAt: new Date('2026-07-01'),
         },
       },
@@ -305,6 +314,27 @@ async function seedStudents(departments, programs, academicYears, semesters, sta
     )
     return [row.registerNumber, student]
   })))
+}
+
+async function seedStudentUsers(students) {
+  const { salt, hash } = await hashPassword(studentPassword)
+
+  await Promise.all(Object.values(students).map((student) => User.findOneAndUpdate(
+    { email: student.email },
+    {
+      $set: {
+        name: student.name,
+        email: student.email,
+        passwordHash: hash,
+        passwordSalt: salt,
+        role: 'Student',
+        studentId: student._id,
+        status: student.status === 'Inactive' ? 'Suspended' : 'Active',
+        lastLoginAt: null,
+      },
+    },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
+  )))
 }
 
 async function seedCourseAssignments(courses, academicYears, semesters, staff) {
@@ -455,6 +485,14 @@ async function seedNotifications() {
     ['Low attendance watchlist', 'One student is below the preferred attendance threshold in Programming Fundamentals.', 'warning', false],
     ['Document scan complete', 'Uploaded sample student documents passed the verification queue.', 'system', true],
   ]
+  const studentRows = [
+    ['Student academic notice', 'Academic: course enrollment details are available in the student portal.', 'info', false],
+    ['Exam cell update', 'Exam: mid-semester exam schedule will be confirmed by the exam cell.', 'warning', false],
+    ['Fee reminder', 'Fees: check with accounts for the latest fee/payment status.', 'info', true],
+    ['Campus event', 'Events: career readiness week registration opens soon.', 'success', false],
+    ['Placement update', 'Placement: resume preparation workshop is scheduled this month.', 'info', true],
+    ['Emergency contact reminder', 'Emergency: keep your emergency contact updated in My Profile.', 'system', false],
+  ]
 
   await Promise.all(rows.map(([title, message, type, isRead]) => Notification.findOneAndUpdate(
     { title, 'recipient.role': 'Super Admin' },
@@ -464,6 +502,20 @@ async function seedNotifications() {
         message,
         type,
         recipient: { userId: '', role: 'Super Admin' },
+        sender: { userId: 'system', name: 'Nexus System', role: 'System' },
+        isRead,
+      },
+    },
+    { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true },
+  )))
+  await Promise.all(studentRows.map(([title, message, type, isRead]) => Notification.findOneAndUpdate(
+    { title, 'recipient.role': 'Student' },
+    {
+      $set: {
+        title,
+        message,
+        type,
+        recipient: { userId: '', role: 'Student' },
         sender: { userId: 'system', name: 'Nexus System', role: 'System' },
         isRead,
       },

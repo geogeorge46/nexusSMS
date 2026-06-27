@@ -1,8 +1,9 @@
 import { User } from '../models/User.js'
+import { Student } from '../models/Student.js'
 import { signAuthToken } from './authTokenService.js'
 import { hashPassword, validatePasswordStrength, verifyPassword } from './passwordService.js'
 
-const loginRoles = new Set(['Admin', 'Super Admin', 'Teacher', 'Staff'])
+const loginRoles = new Set(['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'])
 
 export async function signupUser({ name, email, password, role = 'Admin' }) {
   const normalizedEmail = normalizeEmail(email)
@@ -56,6 +57,18 @@ export async function loginUser({ email, password }) {
     throw error
   }
 
+  if (user.role === 'Student') {
+    const student = await Student.findOne(user.studentId
+      ? { $or: [{ _id: user.studentId }, { email: user.email }] }
+      : { email: user.email }).select('status').lean()
+
+    if (!student || student.status === 'Inactive') {
+      const error = new Error('Student account is inactive. Please contact the academic office.')
+      error.statusCode = 403
+      throw error
+    }
+  }
+
   const valid = await verifyPassword(password ?? '', user.passwordSalt, user.passwordHash)
 
   if (!valid) {
@@ -76,6 +89,7 @@ export function sanitizeUser(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    studentId: user.studentId?.toString?.() ?? '',
     status: user.status,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,

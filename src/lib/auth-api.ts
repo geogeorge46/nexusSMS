@@ -5,7 +5,7 @@ export type AuthUser = {
   id: string
   name: string
   email: string
-  role: 'Admin' | 'Super Admin' | 'Teacher' | 'Staff'
+  role: 'Admin' | 'Super Admin' | 'Teacher' | 'Staff' | 'Student'
   staff?: {
     id: string
     employeeNumber: string
@@ -13,6 +13,16 @@ export type AuthUser = {
     designation: string
     departmentId: string
   }
+  student?: {
+    id: string
+    registerNumber: string
+    name: string
+    email: string
+    department: string
+    program: string
+    semesterId: string
+  }
+  studentId?: string
   status?: 'Active' | 'Suspended'
   lastLoginAt?: string
   createdAt?: string

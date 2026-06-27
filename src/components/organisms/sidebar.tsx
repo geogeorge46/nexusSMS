@@ -4,10 +4,10 @@ import { BrandMark } from '@/components/atoms/brand-mark'
 import { NavLink } from '@/components/molecules/nav-link'
 import { GlassCard } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { primaryNavigation, secondaryNavigation } from '@/config/navigation'
+import { primaryNavigation, secondaryNavigation, studentNavigation } from '@/config/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { useStudentCount } from '@/hooks/use-students'
-import { canUseAcademicTools, canViewInstitutionModule, isAdmin, isStaff, isTeacher, staffDesignation } from '@/lib/permissions'
+import { canUseAcademicTools, canViewInstitutionModule, isAdmin, isStaff, isStudent, isTeacher, staffDesignation } from '@/lib/permissions'
 import type { NavItem } from '@/config/navigation'
 
 type SidebarProps = {
@@ -16,13 +16,14 @@ type SidebarProps = {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user } = useAuth()
-  const studentCount = useStudentCount()
-  const navigation = primaryNavigation.map((item) =>
+  const studentCount = useStudentCount(!isStudent(user))
+  const baseNavigation = isStudent(user) ? studentNavigation : primaryNavigation
+  const navigation = baseNavigation.map((item) =>
     item.href === '/students' && typeof studentCount.data === 'number'
       ? { ...item, badge: formatCount(studentCount.data) }
       : item,
   ).filter((item) => canSeeNavItem(item, user))
-  const visibleSecondaryNavigation = secondaryNavigation.filter((item) => canSeeNavItem(item, user))
+  const visibleSecondaryNavigation = isStudent(user) ? [] : secondaryNavigation.filter((item) => canSeeNavItem(item, user))
 
   return (
     <aside className="flex h-full max-h-[calc(100vh-2rem)] min-h-0 flex-col gap-4">
@@ -76,6 +77,7 @@ function canSeeNavItem(item: NavItem, user: ReturnType<typeof useAuth>['user']) 
   if (!user) return false
   const { href } = item
 
+  if (isStudent(user)) return studentNavigation.some((navItem) => navItem.href === href)
   if (item.superAdminOnly) return user.role === 'Super Admin'
   if (isAdmin(user)) return true
 

@@ -22,6 +22,7 @@ import { notificationRouter } from './routes/notificationRoutes.js'
 import { reportRouter } from './routes/reportRoutes.js'
 import { studentDocumentRouter } from './routes/studentDocumentRoutes.js'
 import { studentImportRouter } from './routes/studentImportRoutes.js'
+import { studentPortalRouter } from './routes/studentPortalRoutes.js'
 import { studentRouter } from './routes/studentRoutes.js'
 
 export const app = express()
@@ -94,6 +95,8 @@ app.get('/api/ready', (_req, res) => {
 app.use('/api/auth', authRouter)
 app.use('/api/admins', adminRouter)
 app.use('/api/catalog', catalogRouter)
+app.use('/api/student-portal', studentPortalRouter)
+app.use('/api/portal', studentPortalRouter)
 app.use('/api/students/import', studentImportRouter)
 app.use('/api/students', studentRouter)
 app.use('/api/courses', courseRouter)

@@ -1,5 +1,6 @@
 import { User } from '../models/User.js'
 import { Staff } from '../models/Staff.js'
+import { Student } from '../models/Student.js'
 import { verifyAuthToken } from '../services/authTokenService.js'
 
 const adminRoles = new Set(['Admin', 'Super Admin'])
@@ -13,7 +14,7 @@ export async function attachRequestContext(req, _res, next) {
 
     if (token) {
       const payload = verifyAuthToken(token)
-      const user = await User.findById(payload.sub).select('name email role status').lean()
+      const user = await User.findById(payload.sub).select('name email role status studentId').lean()
 
       if (user?.status === 'Active') {
         const staff = user.role === 'Teacher' || user.role === 'Staff'
@@ -21,6 +22,12 @@ export async function attachRequestContext(req, _res, next) {
               $or: [{ userId: user._id }, { email: user.email }],
               status: 'Active',
             }).select('employeeNumber category designation departmentId').lean()
+          : null
+        const studentQuery = user.studentId
+          ? { $or: [{ _id: user.studentId }, { email: user.email }], status: { $ne: 'Inactive' } }
+          : { email: user.email, status: { $ne: 'Inactive' } }
+        const student = user.role === 'Student'
+          ? await Student.findOne(studentQuery).select('name email registerNumber department program semesterId').lean()
           : null
 
         req.user = {
@@ -35,6 +42,17 @@ export async function attachRequestContext(req, _res, next) {
                 category: staff.category,
                 designation: staff.designation,
                 departmentId: staff.departmentId?.toString?.() ?? '',
+              }
+            : undefined,
+          student: student
+            ? {
+                id: student._id.toString(),
+                registerNumber: student.registerNumber,
+                name: student.name,
+                email: student.email,
+                department: student.department,
+                program: student.program,
+                semesterId: student.semesterId?.toString?.() ?? '',
               }
             : undefined,
         }
@@ -52,6 +70,45 @@ export function requireAuthenticated(req, _res, next) {
   if (!req.user) {
     const error = new Error('Authentication required')
     error.statusCode = 401
+    next(error)
+    return
+  }
+
+  next()
+}
+
+export function requireNonStudent(req, _res, next) {
+  if (!req.user) {
+    next(authError())
+    return
+  }
+
+  if (req.user.role === 'Student') {
+    const error = new Error('Student accounts can only access student portal endpoints')
+    error.statusCode = 403
+    next(error)
+    return
+  }
+
+  next()
+}
+
+export function requireStudent(req, _res, next) {
+  if (!req.user) {
+    next(authError())
+    return
+  }
+
+  if (req.user.role !== 'Student') {
+    const error = new Error('Student portal access requires a student account')
+    error.statusCode = 403
+    next(error)
+    return
+  }
+
+  if (!req.user.student?.id) {
+    const error = new Error('Student account is not linked to an active student record')
+    error.statusCode = 403
     next(error)
     return
   }

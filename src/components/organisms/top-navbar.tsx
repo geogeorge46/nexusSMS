@@ -10,7 +10,7 @@ import { Sidebar } from '@/components/organisms/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
-import { canWriteStudents } from '@/lib/permissions'
+import { canWriteStudents, isStudent } from '@/lib/permissions'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +26,7 @@ export function TopNavbar() {
   const { logout, user } = useAuth()
   const initials = getInitials(user?.name ?? 'Campus Admin')
   const canCreateStudent = canWriteStudents(user)
+  const profilePath = isStudent(user) ? '/my-profile' : '/settings'
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/72 px-4 py-3 backdrop-blur-2xl sm:px-6">
@@ -80,7 +81,7 @@ export function TopNavbar() {
               <DropdownMenuLabel>{user?.name ?? 'Campus Admin'}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link to="/settings">Profile</Link>
+                <Link to={profilePath}>Profile</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/">Command Center</Link>

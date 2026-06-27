@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema(
     user: { type: String, required: true, trim: true, index: true },
     role: {
       type: String,
-      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff'],
+      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'],
       required: true,
       index: true,
     },
@@ -31,6 +31,7 @@ const auditLogSchema = new mongoose.Schema(
         'DOCUMENT_UPLOAD',
         'DOCUMENT_DELETE',
         'NOTIFICATION_CREATE',
+        'NOTIFICATION_READ',
         'NOTIFICATION_DELETE',
         'ADMIN_CREATE',
         'ADMIN_UPDATE',

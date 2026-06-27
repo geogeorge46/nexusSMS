@@ -8,14 +8,14 @@ import {
   uploadStudentDocuments,
 } from '../controllers/studentDocumentController.js'
 import { auditAction } from '../middleware/auditMiddleware.js'
-import { requireAuthenticated, requireDocumentWriteAccess } from '../middleware/requestContext.js'
+import { requireAuthenticated, requireDocumentWriteAccess, requireNonStudent } from '../middleware/requestContext.js'
 import { uploadStudentDocuments as uploadDocumentsMiddleware } from '../middleware/upload.js'
 
 export const studentDocumentRouter = Router()
 
 studentDocumentRouter.use(requireAuthenticated)
-studentDocumentRouter.get('/', listStudentDocuments)
-studentDocumentRouter.get('/student/:studentId', listStudentDocumentsByStudent)
+studentDocumentRouter.get('/', requireNonStudent, listStudentDocuments)
+studentDocumentRouter.get('/student/:studentId', requireNonStudent, listStudentDocumentsByStudent)
 studentDocumentRouter.post(
   '/upload',
   requireDocumentWriteAccess,
@@ -35,7 +35,7 @@ studentDocumentRouter.post(
   auditAction({ action: 'DOCUMENT_UPLOAD', module: 'Documents', description: (req) => `Uploaded ${req.files?.length ?? 0} student document(s)` }),
   uploadStudentDocuments,
 )
-studentDocumentRouter.get('/:documentId/download', downloadStudentDocument)
+studentDocumentRouter.get('/:documentId/download', requireNonStudent, downloadStudentDocument)
 studentDocumentRouter.delete(
   '/:documentId',
   requireDocumentWriteAccess,

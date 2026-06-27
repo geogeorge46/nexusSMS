@@ -10,6 +10,7 @@ import {
   canViewInstitutionModule,
   canWriteStudents,
   isAdmin,
+  isStudent,
   isTeacher,
   staffDesignation,
 } from '@/lib/permissions'
@@ -52,6 +53,22 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
 
   if (isBootstrapping) return <AuthLoadingState />
   if (!isAdmin(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireNonStudent({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (isStudent(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireStudentPortal({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!isStudent(user)) return <Navigate replace to="/" />
   return children
 }
 

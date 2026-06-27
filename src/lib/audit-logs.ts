@@ -4,7 +4,7 @@ import axios from 'axios'
 export type AuditLog = {
   _id: string
   user: string
-  role: 'Admin' | 'Super Admin'
+  role: 'Admin' | 'Super Admin' | 'Teacher' | 'Staff' | 'Student'
   action: string
   module: string
   description: string

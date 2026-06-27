@@ -19,6 +19,13 @@ export type Student = {
   advisor: string
   phone: string
   address: string
+  guardianName?: string
+  guardianPhone?: string
+  emergencyContact?: string
+  bloodGroup?: string
+  profilePhotoUrl?: string
+  skills?: string[]
+  achievements?: string[]
   departmentId?: string
   programId?: string
   academicYearId?: string
@@ -91,9 +98,10 @@ export function useStudents(filters = defaultStudentFilters) {
   })
 }
 
-export function useStudentCount() {
+export function useStudentCount(enabled = true) {
   return useQuery({
     queryKey: ['students', 'count'],
+    enabled,
     queryFn: async (): Promise<number> => {
       const response = await api.get<StudentListResponse>('/students', {
         params: {

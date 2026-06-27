@@ -15,10 +15,11 @@ const userSchema = new mongoose.Schema(
     passwordSalt: { type: String, required: true },
     role: {
       type: String,
-      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff'],
+      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'],
       default: 'Admin',
       index: true,
     },
+    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', index: true },
     status: {
       type: String,
       enum: ['Active', 'Suspended'],

@@ -26,6 +26,7 @@ import { hashPassword } from '../server/services/passwordService.js'
 
 const testOnly = process.argv.includes('--test-only')
 const password = 'Teacher@12345'
+const studentPassword = 'Student@12345'
 const summary = {
   seeded: 0,
   validChecks: 0,
@@ -88,6 +89,7 @@ async function seedBaseline() {
   ctx.staff = await seedStaff()
   ctx.courses = await seedCourses()
   ctx.students = await seedStudents()
+  await seedStudentUsers()
   await seedAssignments()
   await seedEnrollments()
   await seedAttendance()
@@ -234,9 +236,36 @@ async function seedStudents() {
       advisor: index % 2 ? ctx.staff.dbms.name : ctx.staff.java.name,
       phone: `+91 98000 10${String(index + 1).padStart(3, '0')}`,
       address: `Constraint Demo Address ${index + 1}, Nexus Campus`,
+      guardianName: `Constraint Guardian ${index + 1}`,
+      guardianPhone: `+91 97000 20${String(index + 1).padStart(3, '0')}`,
+      emergencyContact: `+91 96000 30${String(index + 1).padStart(3, '0')}`,
+      bloodGroup: ['A+', 'B+', 'O+', 'AB+'][index % 4],
+      skills: ['Collaboration', 'Problem Solving'],
+      achievements: status === 'Active' ? ['Portal seed profile completed'] : [],
       enrolledAt: date('2026-07-01'),
     })
     return [registerNumber, student]
+  })))
+}
+
+async function seedStudentUsers() {
+  const { salt, hash } = await hashPassword(studentPassword)
+  const students = [
+    ctx.students['CON-STU-0001'],
+    ctx.students['CON-STU-0002'],
+    ctx.students['CON-STU-0005'],
+    ctx.students['CON-STU-0006'],
+    ctx.students['CON-STU-0008'],
+  ]
+
+  await Promise.all(students.map((student) => upsert(User, { email: student.email }, {
+    name: student.name,
+    email: student.email,
+    passwordHash: hash,
+    passwordSalt: salt,
+    role: 'Student',
+    studentId: student._id,
+    status: student.status === 'Inactive' ? 'Suspended' : 'Active',
   })))
 }
 
@@ -563,4 +592,5 @@ function printSummary() {
   if (summary.failures.length > 0) console.table(summary.failures)
   console.log(`Seeded identities use CON-* values and constraint.*@nexus.local emails.`)
   console.log(`Teaching demo password: ${password}`)
+  console.log(`Student demo password: ${studentPassword}`)
 }
