@@ -15,7 +15,7 @@ const userSchema = new mongoose.Schema(
     passwordSalt: { type: String, required: true },
     role: {
       type: String,
-      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'],
+      enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student', 'Parent'],
       default: 'Admin',
       index: true,
     },

@@ -20,6 +20,7 @@ import { StudentCourse } from '../server/models/StudentCourse.js'
 import { StudentDocument } from '../server/models/StudentDocument.js'
 import { User } from '../server/models/User.js'
 import { hashPassword } from '../server/services/passwordService.js'
+import { assertSafeSeed } from './seedSafety.js'
 
 const seedPassword = 'Teacher@12345'
 const adminPassword = 'Admin@12345'
@@ -27,6 +28,7 @@ const studentPassword = 'Student@12345'
 const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase() ?? 'admin@nexus.com'
 
 try {
+  assertSafeSeed('seed:institution')
   validateRuntimeEnv()
   await connectDatabase(env.mongoUri)
 

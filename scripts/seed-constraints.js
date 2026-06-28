@@ -23,6 +23,7 @@ import { createResource } from '../server/services/catalogService.js'
 import { createGrade } from '../server/services/gradeService.js'
 import { markAttendance } from '../server/services/attendanceService.js'
 import { hashPassword } from '../server/services/passwordService.js'
+import { assertSafeSeed } from './seedSafety.js'
 
 const testOnly = process.argv.includes('--test-only')
 const password = 'Teacher@12345'
@@ -37,6 +38,7 @@ const summary = {
 const ctx = {}
 
 try {
+  assertSafeSeed(testOnly ? 'test:constraints' : 'seed:constraints')
   validateRuntimeEnv()
   await connectDatabase(env.mongoUri)
   await seedBaseline()

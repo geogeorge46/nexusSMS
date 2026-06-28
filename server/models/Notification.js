@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
       userId: { type: String, trim: true, default: '' },
       role: {
         type: String,
-        enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'],
+        enum: ['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student', 'Parent'],
         required: true,
         index: true,
       },
@@ -30,6 +30,7 @@ const notificationSchema = new mongoose.Schema(
 )
 
 notificationSchema.index({ 'recipient.role': 1, isRead: 1, createdAt: -1 })
+notificationSchema.index({ 'recipient.userId': 1, isRead: 1, createdAt: -1 })
 notificationSchema.index({ title: 'text', message: 'text' })
 
 export const Notification = mongoose.model('Notification', notificationSchema)

@@ -6,10 +6,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
 import {
   canManageCourses,
+  canViewFees,
+  canViewExams,
+  canViewLms,
+  canViewTimetable,
   canUseAcademicTools,
   canViewInstitutionModule,
   canWriteStudents,
   isAdmin,
+  isParent,
   isStudent,
   isTeacher,
   staffDesignation,
@@ -60,7 +65,23 @@ export function RequireNonStudent({ children }: { children: ReactNode }) {
   const { user, isBootstrapping } = useAuth()
 
   if (isBootstrapping) return <AuthLoadingState />
-  if (isStudent(user)) return <Navigate replace to="/" />
+  if (isStudent(user) || isParent(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireParentPortal({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!isParent(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequirePortalAccess({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!isStudent(user) && !isParent(user)) return <Navigate replace to="/" />
   return children
 }
 
@@ -101,6 +122,38 @@ export function RequireReports({ children }: { children: ReactNode }) {
 
   if (isBootstrapping) return <AuthLoadingState />
   if (!user) return <Navigate replace to="/login" />
+  return children
+}
+
+export function RequireFeeAccess({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!canViewFees(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireTimetableAccess({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!canViewTimetable(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireExamAccess({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!canViewExams(user)) return <Navigate replace to="/" />
+  return children
+}
+
+export function RequireLmsAccess({ children }: { children: ReactNode }) {
+  const { user, isBootstrapping } = useAuth()
+
+  if (isBootstrapping) return <AuthLoadingState />
+  if (!canViewLms(user)) return <Navigate replace to="/" />
   return children
 }
 

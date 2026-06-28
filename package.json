@@ -16,7 +16,17 @@
     "seed:admin": "node scripts/create-super-admin.js",
     "seed:institution": "node scripts/seed-institution.js",
     "seed:constraints": "node scripts/seed-constraints.js",
-    "test:constraints": "node scripts/test-constraints.js"
+    "seed:fees": "node scripts/seed-fees.js",
+    "seed:timetable": "node scripts/seed-timetable.js",
+    "seed:exams": "node scripts/seed-exams.js",
+    "seed:lms": "node scripts/seed-lms.js",
+    "seed:parents": "node scripts/seed-parents.js",
+    "test:constraints": "node scripts/test-constraints.js",
+    "test:fees": "node scripts/test-fees.js",
+    "test:timetable": "node scripts/test-timetable.js",
+    "test:exams": "node scripts/test-exams.js",
+    "test:lms": "node scripts/test-lms.js",
+    "test:parents": "node scripts/test-parents.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.2.0",

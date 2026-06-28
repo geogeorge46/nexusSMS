@@ -11,6 +11,15 @@ import {
   markStudentPortalNotificationRead,
   updateStudentPortalProfile,
 } from '../services/studentPortalService.js'
+import { getOwnReceipt, listOwnReceipts, listOwnStudentFees } from '../services/feeService.js'
+import { getStudentPortalExams, getStudentPortalResults, getStudentPortalTickets } from '../services/examService.js'
+import {
+  getStudentAssignment,
+  listStudentAssignments,
+  listStudentMaterials,
+  listStudentSubmissions,
+  submitAssignment,
+} from '../services/lmsService.js'
 import { getAuditContext } from '../middleware/auditMiddleware.js'
 import { createAuditLog } from '../services/auditLogService.js'
 import { asyncHandler } from '../utils/asyncHandler.js'
@@ -77,4 +86,56 @@ export const getPortalCalendar = asyncHandler(async (_req, res) => {
 
 export const getPortalSupport = asyncHandler(async (_req, res) => {
   res.json(getStudentPortalSupport())
+})
+
+export const getPortalFees = asyncHandler(async (req, res) => {
+  res.json(await listOwnStudentFees(req.user))
+})
+
+export const getPortalReceipts = asyncHandler(async (req, res) => {
+  res.json(await listOwnReceipts(req.user))
+})
+
+export const getPortalReceiptById = asyncHandler(async (req, res) => {
+  res.json(await getOwnReceipt(req.user, req.params.id))
+})
+
+export const getPortalExams = asyncHandler(async (req, res) => {
+  res.json(await getStudentPortalExams(req.user))
+})
+
+export const getPortalHallTickets = asyncHandler(async (req, res) => {
+  res.json(await getStudentPortalTickets(req.user))
+})
+
+export const getPortalExamResults = asyncHandler(async (req, res) => {
+  res.json(await getStudentPortalResults(req.user))
+})
+
+export const getPortalAssignments = asyncHandler(async (req, res) => {
+  res.json(await listStudentAssignments(req.user))
+})
+
+export const getPortalAssignmentById = asyncHandler(async (req, res) => {
+  res.json({ item: await getStudentAssignment(req.user, req.params.id) })
+})
+
+export const postPortalAssignmentSubmission = asyncHandler(async (req, res) => {
+  const item = await submitAssignment(req.user, req.params.id, req.body)
+  await createAuditLog({
+    ...getAuditContext(req),
+    action: 'ASSIGNMENT_SUBMIT',
+    module: 'AssignmentSubmissions',
+    description: `${req.user.name} submitted an assignment`,
+    metadata: { id: item.id },
+  })
+  res.status(201).json({ item })
+})
+
+export const getPortalSubmissions = asyncHandler(async (req, res) => {
+  res.json(await listStudentSubmissions(req.user))
+})
+
+export const getPortalMaterials = asyncHandler(async (req, res) => {
+  res.json(await listStudentMaterials(req.user))
 })

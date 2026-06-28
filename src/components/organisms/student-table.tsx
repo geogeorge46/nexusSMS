@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, Download, Eye, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { ArrowUpDown, ChevronLeft, ChevronRight, Download, Eye, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { StudentAvatar } from '@/components/molecules/student-avatar'
@@ -17,6 +18,8 @@ import { getStudentErrorMessage, useDeleteStudent, type Student, type StudentFil
 
 const allStatuses = ['All', 'Active', 'Pending', 'Review', 'Inactive']
 const allDepartments = ['All', 'Engineering', 'Science', 'Business', 'Arts', 'Humanities']
+type SortKey = 'name' | 'program' | 'department' | 'attendance' | 'gpa' | 'status'
+type SortDirection = 'asc' | 'desc'
 
 export function StudentTable({
   filters,
@@ -44,9 +47,18 @@ export function StudentTable({
   canManageStudents: boolean
   canDeleteStudents: boolean
 }) {
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({ key: 'name', direction: 'asc' })
   const currentPage = pagination?.page ?? filters.page
   const pageCount = pagination?.pages ?? 1
   const total = pagination?.total ?? 0
+  const visibleStudents = useMemo(() => sortStudents(students, sort.key, sort.direction), [students, sort])
+
+  function updateSort(key: SortKey) {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
 
   function updateQuery(value: string) {
     onFiltersChange({ search: value })
@@ -101,11 +113,11 @@ export function StudentTable({
           <StudentTableSkeleton />
         ) : (
           <>
-            <DesktopTable students={students} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
-            <MobileCards students={students} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
+            <DesktopTable students={visibleStudents} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} sort={sort} onSort={updateSort} />
+            <MobileCards students={visibleStudents} canManageStudents={canManageStudents} canDeleteStudents={canDeleteStudents} />
             <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm font-medium text-muted-foreground">
-                {isFetching ? 'Refreshing students...' : `Showing ${students.length} of ${total} students`}
+                {isFetching ? 'Refreshing students...' : `Showing ${visibleStudents.length} of ${total} students`}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -168,18 +180,30 @@ function FilterSelect({
   )
 }
 
-function DesktopTable({ students, canManageStudents, canDeleteStudents }: { students: Student[]; canManageStudents: boolean; canDeleteStudents: boolean }) {
+function DesktopTable({
+  students,
+  canManageStudents,
+  canDeleteStudents,
+  sort,
+  onSort,
+}: {
+  students: Student[]
+  canManageStudents: boolean
+  canDeleteStudents: boolean
+  sort: { key: SortKey; direction: SortDirection }
+  onSort: (key: SortKey) => void
+}) {
   return (
     <div className="hidden overflow-hidden rounded-[20px] border border-border/70 lg:block">
       <table className="w-full border-collapse text-left">
         <thead className="bg-muted/60 text-xs font-bold uppercase text-muted-foreground">
           <tr>
-            <th className="px-4 py-3">Student</th>
-            <th className="px-4 py-3">Program</th>
-            <th className="px-4 py-3">Department</th>
-            <th className="px-4 py-3">Attendance</th>
-            <th className="px-4 py-3">GPA</th>
-            <th className="px-4 py-3">Status</th>
+            <SortableHeader label="Student" sortKey="name" sort={sort} onSort={onSort} />
+            <SortableHeader label="Program" sortKey="program" sort={sort} onSort={onSort} />
+            <SortableHeader label="Department" sortKey="department" sort={sort} onSort={onSort} />
+            <SortableHeader label="Attendance" sortKey="attendance" sort={sort} onSort={onSort} />
+            <SortableHeader label="GPA" sortKey="gpa" sort={sort} onSort={onSort} />
+            <SortableHeader label="Status" sortKey="status" sort={sort} onSort={onSort} />
             <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
@@ -205,6 +229,29 @@ function DesktopTable({ students, canManageStudents, canDeleteStudents }: { stud
       </table>
       {students.length === 0 && <EmptyState />}
     </div>
+  )
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+}: {
+  label: string
+  sortKey: SortKey
+  sort: { key: SortKey; direction: SortDirection }
+  onSort: (key: SortKey) => void
+}) {
+  const active = sort.key === sortKey
+  return (
+    <th className="px-4 py-3">
+      <button className="inline-flex items-center gap-1 rounded-lg text-xs font-bold uppercase text-muted-foreground transition hover:text-foreground" onClick={() => onSort(sortKey)} type="button">
+        {label}
+        <ArrowUpDown className={active ? 'size-3 text-primary' : 'size-3'} />
+        <span className="sr-only">{active ? `sorted ${sort.direction}` : 'sort column'}</span>
+      </button>
+    </th>
   )
 }
 
@@ -324,4 +371,14 @@ function StudentTableSkeleton() {
       ))}
     </div>
   )
+}
+
+function sortStudents(students: Student[], key: SortKey, direction: SortDirection) {
+  const multiplier = direction === 'asc' ? 1 : -1
+  return [...students].sort((a, b) => {
+    const aValue = a[key]
+    const bValue = b[key]
+    if (typeof aValue === 'number' && typeof bValue === 'number') return (aValue - bValue) * multiplier
+    return String(aValue ?? '').localeCompare(String(bValue ?? '')) * multiplier
+  })
 }

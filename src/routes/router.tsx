@@ -1,6 +1,6 @@
 import { ShieldCheck } from 'lucide-react'
 import { lazy, Suspense, type ComponentType, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom'
 
 import { AppShell } from '@/components/templates/app-shell'
 import { GlassCard } from '@/components/ui/card'
@@ -14,11 +14,18 @@ import {
   RequireAuth,
   RequireCourseManager,
   RequireCourseViewer,
+  RequireExamAccess,
+  RequireFeeAccess,
+  RequireInstitutionModule,
+  RequireLmsAccess,
   RequireNonStudent,
+  RequireParentPortal,
+  RequirePortalAccess,
   RequireReports,
   RequireStudentPortal,
   RequireStudentWriter,
   RequireSuperAdmin,
+  RequireTimetableAccess,
 } from '@/routes/auth-gates'
 
 const HomePage = lazyPage(() => import('@/pages/home'), 'HomePage')
@@ -54,6 +61,26 @@ const MyDocumentsPage = lazyPage(() => import('@/pages/my-documents'), 'MyDocume
 const NotificationsPage = lazyPage(() => import('@/pages/notifications'), 'NotificationsPage')
 const AcademicCalendarPage = lazyPage(() => import('@/pages/academic-calendar'), 'AcademicCalendarPage')
 const HelpSupportPage = lazyPage(() => import('@/pages/help-support'), 'HelpSupportPage')
+const FeeManagementPage = lazyPage(() => import('@/pages/fee-management'), 'FeeManagementPage')
+const MyFeesPage = lazyPage(() => import('@/pages/my-fees'), 'MyFeesPage')
+const MyReceiptsPage = lazyPage(() => import('@/pages/my-receipts'), 'MyReceiptsPage')
+const TimetableManagementPage = lazyPage(() => import('@/pages/timetable-management'), 'TimetableManagementPage')
+const ExamManagementPage = lazyPage(() => import('@/pages/exam-management'), 'ExamManagementPage')
+const MyExamsPage = lazyPage(() => import('@/pages/my-exams'), 'MyExamsPage')
+const MyHallTicketsPage = lazyPage(() => import('@/pages/my-hall-tickets'), 'MyHallTicketsPage')
+const MyResultsPage = lazyPage(() => import('@/pages/my-results'), 'MyResultsPage')
+const LmsManagementPage = lazyPage(() => import('@/pages/lms-management'), 'LmsManagementPage')
+const MyAssignmentsPage = lazyPage(() => import('@/pages/my-assignments'), 'MyAssignmentsPage')
+const MySubmissionsPage = lazyPage(() => import('@/pages/my-submissions'), 'MySubmissionsPage')
+const LearningMaterialsPage = lazyPage(() => import('@/pages/learning-materials'), 'LearningMaterialsPage')
+const ParentChildrenPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentChildrenPage')
+const ParentAttendancePage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentAttendancePage')
+const ParentGradesPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentGradesPage')
+const ParentFeesPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentFeesPage')
+const ParentAssignmentsPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentAssignmentsPage')
+const ParentTimetablePage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentTimetablePage')
+const ParentDocumentsPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentDocumentsPage')
+const ParentNotificationsPage = lazyPage(() => import('@/pages/parent-portal-pages'), 'ParentNotificationsPage')
 
 export const router = createBrowserRouter([
   {
@@ -76,12 +103,28 @@ export const router = createBrowserRouter([
           { path: 'my-profile', element: <RequireStudentPortal>{withRouteSuspense(<MyProfilePage />)}</RequireStudentPortal> },
           { path: 'my-courses', element: <RequireStudentPortal>{withRouteSuspense(<MyCoursesPage />)}</RequireStudentPortal> },
           { path: 'my-timetable', element: <RequireStudentPortal>{withRouteSuspense(<MyTimetablePage />)}</RequireStudentPortal> },
+          { path: 'my-exams', element: <RequireStudentPortal>{withRouteSuspense(<MyExamsPage />)}</RequireStudentPortal> },
+          { path: 'my-hall-tickets', element: <RequireStudentPortal>{withRouteSuspense(<MyHallTicketsPage />)}</RequireStudentPortal> },
+          { path: 'my-results', element: <RequireStudentPortal>{withRouteSuspense(<MyResultsPage />)}</RequireStudentPortal> },
+          { path: 'my-assignments', element: <RequireStudentPortal>{withRouteSuspense(<MyAssignmentsPage />)}</RequireStudentPortal> },
+          { path: 'my-submissions', element: <RequireStudentPortal>{withRouteSuspense(<MySubmissionsPage />)}</RequireStudentPortal> },
+          { path: 'learning-materials', element: <RequireStudentPortal>{withRouteSuspense(<LearningMaterialsPage />)}</RequireStudentPortal> },
+          { path: 'children', element: <RequireParentPortal>{withRouteSuspense(<ParentChildrenPage />)}</RequireParentPortal> },
+          { path: 'child-attendance', element: <RequireParentPortal>{withRouteSuspense(<ParentAttendancePage />)}</RequireParentPortal> },
+          { path: 'child-grades', element: <RequireParentPortal>{withRouteSuspense(<ParentGradesPage />)}</RequireParentPortal> },
+          { path: 'child-fees', element: <RequireParentPortal>{withRouteSuspense(<ParentFeesPage />)}</RequireParentPortal> },
+          { path: 'child-assignments', element: <RequireParentPortal>{withRouteSuspense(<ParentAssignmentsPage />)}</RequireParentPortal> },
+          { path: 'child-timetable', element: <RequireParentPortal>{withRouteSuspense(<ParentTimetablePage />)}</RequireParentPortal> },
+          { path: 'child-documents', element: <RequireParentPortal>{withRouteSuspense(<ParentDocumentsPage />)}</RequireParentPortal> },
+          { path: 'parent-notifications', element: <RequireParentPortal>{withRouteSuspense(<ParentNotificationsPage />)}</RequireParentPortal> },
           { path: 'my-attendance', element: <RequireStudentPortal>{withRouteSuspense(<MyAttendancePage />)}</RequireStudentPortal> },
           { path: 'my-grades', element: <RequireStudentPortal>{withRouteSuspense(<MyGradesPage />)}</RequireStudentPortal> },
           { path: 'my-documents', element: <RequireStudentPortal>{withRouteSuspense(<MyDocumentsPage />)}</RequireStudentPortal> },
+          { path: 'my-fees', element: <RequireStudentPortal>{withRouteSuspense(<MyFeesPage />)}</RequireStudentPortal> },
+          { path: 'my-receipts', element: <RequireStudentPortal>{withRouteSuspense(<MyReceiptsPage />)}</RequireStudentPortal> },
           { path: 'notifications', element: <RequireStudentPortal>{withRouteSuspense(<NotificationsPage />)}</RequireStudentPortal> },
           { path: 'academic-calendar', element: <RequireStudentPortal>{withRouteSuspense(<AcademicCalendarPage />)}</RequireStudentPortal> },
-          { path: 'help-support', element: <RequireStudentPortal>{withRouteSuspense(<HelpSupportPage />)}</RequireStudentPortal> },
+          { path: 'help-support', element: <RequirePortalAccess>{withRouteSuspense(<HelpSupportPage />)}</RequirePortalAccess> },
           { path: 'students', element: <RequireNonStudent>{withRouteSuspense(<StudentListPage />)}</RequireNonStudent> },
           { path: 'students/new', element: <RequireStudentWriter>{withRouteSuspense(<AddStudentPage />)}</RequireStudentWriter> },
           { path: 'students/import', element: <RequireStudentWriter>{withRouteSuspense(<StudentImportPage />)}</RequireStudentWriter> },
@@ -95,9 +138,14 @@ export const router = createBrowserRouter([
           { path: 'attendance', element: <RequireAcademicTools>{withRouteSuspense(<AttendanceDashboardPage />)}</RequireAcademicTools> },
           { path: 'attendance/mark', element: <RequireAcademicTools>{withRouteSuspense(<MarkAttendancePage />)}</RequireAcademicTools> },
           { path: 'grades', element: <RequireAcademicTools>{withRouteSuspense(<GradeManagementPage />)}</RequireAcademicTools> },
+          { path: 'exams', element: <RequireExamAccess>{withRouteSuspense(<ExamManagementPage />)}</RequireExamAccess> },
+          { path: 'lms', element: <RequireLmsAccess>{withRouteSuspense(<LmsManagementPage />)}</RequireLmsAccess> },
           { path: 'reports', element: <RequireNonStudent><RequireReports>{withRouteSuspense(<ReportsPage />)}</RequireReports></RequireNonStudent> },
+          { path: 'fees', element: <RequireFeeAccess>{withRouteSuspense(<FeeManagementPage />)}</RequireFeeAccess> },
+          { path: 'timetable', element: <RequireTimetableAccess>{withRouteSuspense(<TimetableManagementPage />)}</RequireTimetableAccess> },
+          { path: 'teacher-timetable', element: <RequireTimetableAccess>{withRouteSuspense(<TimetableManagementPage />)}</RequireTimetableAccess> },
           { path: 'analytics', element: <RequireAdmin>{withRouteSuspense(<AnalyticsPage />)}</RequireAdmin> },
-          { path: 'institution/:module', element: <RequireNonStudent>{withRouteSuspense(<InstitutionalModulePage />)}</RequireNonStudent> },
+          { path: 'institution/:module', element: <InstitutionModuleGate>{withRouteSuspense(<InstitutionalModulePage />)}</InstitutionModuleGate> },
           { path: 'audit-logs', element: <RequireAdmin>{withRouteSuspense(<AuditLogsPage />)}</RequireAdmin> },
           {
             path: 'admins',
@@ -136,6 +184,12 @@ function lazyPage<TModule extends Record<TKey, ComponentType>, TKey extends keyo
 
 function withRouteSuspense(children: ReactNode) {
   return <Suspense fallback={<RouteLoadingState />}>{children}</Suspense>
+}
+
+function InstitutionModuleGate({ children }: { children: ReactNode }) {
+  const { module = '' } = useParams()
+
+  return <RequireInstitutionModule module={module}>{children}</RequireInstitutionModule>
 }
 
 function RouteLoadingState() {

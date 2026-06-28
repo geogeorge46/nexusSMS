@@ -4,10 +4,10 @@ import { BrandMark } from '@/components/atoms/brand-mark'
 import { NavLink } from '@/components/molecules/nav-link'
 import { GlassCard } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { primaryNavigation, secondaryNavigation, studentNavigation } from '@/config/navigation'
+import { parentNavigation, primaryNavigation, secondaryNavigation, studentNavigation } from '@/config/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { useStudentCount } from '@/hooks/use-students'
-import { canUseAcademicTools, canViewInstitutionModule, isAdmin, isStaff, isStudent, isTeacher, staffDesignation } from '@/lib/permissions'
+import { canUseAcademicTools, canViewExams, canViewFees, canViewInstitutionModule, canViewLms, canViewTimetable, isAdmin, isParent, isStaff, isStudent, isTeacher, staffDesignation } from '@/lib/permissions'
 import type { NavItem } from '@/config/navigation'
 
 type SidebarProps = {
@@ -16,14 +16,14 @@ type SidebarProps = {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const { user } = useAuth()
-  const studentCount = useStudentCount(!isStudent(user))
-  const baseNavigation = isStudent(user) ? studentNavigation : primaryNavigation
+  const studentCount = useStudentCount(!isStudent(user) && !isParent(user))
+  const baseNavigation = isStudent(user) ? studentNavigation : isParent(user) ? parentNavigation : primaryNavigation
   const navigation = baseNavigation.map((item) =>
     item.href === '/students' && typeof studentCount.data === 'number'
       ? { ...item, badge: formatCount(studentCount.data) }
       : item,
   ).filter((item) => canSeeNavItem(item, user))
-  const visibleSecondaryNavigation = isStudent(user) ? [] : secondaryNavigation.filter((item) => canSeeNavItem(item, user))
+  const visibleSecondaryNavigation = isStudent(user) || isParent(user) ? [] : secondaryNavigation.filter((item) => canSeeNavItem(item, user))
 
   return (
     <aside className="flex h-full max-h-[calc(100vh-2rem)] min-h-0 flex-col gap-4">
@@ -78,6 +78,7 @@ function canSeeNavItem(item: NavItem, user: ReturnType<typeof useAuth>['user']) 
   const { href } = item
 
   if (isStudent(user)) return studentNavigation.some((navItem) => navItem.href === href)
+  if (isParent(user)) return parentNavigation.some((navItem) => navItem.href === href)
   if (item.superAdminOnly) return user.role === 'Super Admin'
   if (isAdmin(user)) return true
 
@@ -89,7 +90,12 @@ function canSeeNavItem(item: NavItem, user: ReturnType<typeof useAuth>['user']) 
     return isTeacher(user) || ['Admission Officer', 'Librarian', 'Lab Assistant'].includes(staffDesignation(user))
   }
 
+  if (href === '/teacher-timetable') return isTeacher(user)
+  if (href === '/exams') return canViewExams(user)
+  if (href === '/lms') return canViewLms(user)
   if (href === '/attendance' || href === '/grades') return canUseAcademicTools(user)
+  if (href === '/fees') return canViewFees(user)
+  if (href === '/timetable') return canViewTimetable(user) && !isTeacher(user)
   if (href.startsWith('/institution/')) return canViewInstitutionModule(user, href.replace('/institution/', ''))
   if (href === '/admins' || href === '/audit-logs' || href === '/governance') return false
 

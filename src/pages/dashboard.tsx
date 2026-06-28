@@ -25,7 +25,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDashboardData, type DashboardData } from '@/hooks/use-dashboard-data'
 import { useAuth } from '@/hooks/use-auth'
-import { canWriteStudents } from '@/lib/permissions'
+import { canViewFees, canViewLms, canViewTimetable, canWriteStudents, isStaff, isTeacher, staffDesignation } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 type StatTone = 'blue' | 'green' | 'violet' | 'amber'
@@ -93,6 +93,7 @@ function DashboardHero({
   isLoading: boolean
 }) {
   const { user } = useAuth()
+  const roleContent = getRoleDashboardContent(user)
 
   return (
     <motion.section variants={reveal}>
@@ -103,7 +104,7 @@ function DashboardHero({
             <div className="mb-5 flex flex-wrap items-center gap-2">
               <Badge className="border-primary/20 bg-primary/10 text-primary">
                 <Sparkles className="mr-1 size-3.5" aria-hidden="true" />
-                Command Center
+                {roleContent.badge}
               </Badge>
               <Badge>{data?.profile.term ?? 'Spring 2026'}</Badge>
             </div>
@@ -116,24 +117,27 @@ function DashboardHero({
             ) : (
               <>
                 <h1 className="max-w-4xl text-3xl font-bold tracking-normal text-foreground sm:text-4xl lg:text-5xl">
-                  Welcome back, {data?.profile.name}
+                  {roleContent.title}, {data?.profile.name}
                 </h1>
                 <p className="mt-4 max-w-3xl text-base leading-7 text-muted-foreground sm:text-lg">
-                  Keep enrollment, academics, attendance, and department health moving from one
-                  polished dashboard.
+                  {roleContent.description}
                 </p>
               </>
             )}
             <div className="mt-6 flex flex-wrap gap-3">
               {canWriteStudents(user) && (
-                <Button type="button">
+                <Button asChild type="button">
+                  <a href="/students/new">
                   <Plus />
                   New Student
+                  </a>
                 </Button>
               )}
-              <Button type="button" variant="glass">
+              <Button asChild type="button" variant="glass">
+                <a href={roleContent.secondaryHref}>
                 <BarChart3 />
-                View Reports
+                {roleContent.secondaryLabel}
+                </a>
               </Button>
             </div>
           </div>
@@ -159,12 +163,30 @@ function DashboardHero({
                     value={data?.stats.find((stat) => stat.label === 'Average GPA')?.value ?? '0.00'}
                   />
                 </div>
+                <div className="mt-4 space-y-3">
+                  <ProgressSignal label="Operational readiness" value={roleContent.progress} />
+                  <ProgressSignal label="Daily attention" value={Math.max(12, 100 - roleContent.progress)} />
+                </div>
               </>
             )}
           </div>
         </div>
       </GlassCard>
     </motion.section>
+  )
+}
+
+function ProgressSignal({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-muted-foreground">
+        <span>{label}</span>
+        <span>{value}%</span>
+      </div>
+      <div className="mt-2 h-2 rounded-full bg-muted">
+        <div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
+      </div>
+    </div>
   )
 }
 
@@ -239,4 +261,42 @@ function StatCardSkeleton() {
       </div>
     </GlassCard>
   )
+}
+
+function getRoleDashboardContent(user: ReturnType<typeof useAuth>['user']) {
+  if (isTeacher(user)) {
+    return {
+      badge: 'Teacher Workspace',
+      title: 'Ready for class',
+      description: 'Review assigned courses, attendance, grades, exams, LMS activity, and your teaching timetable from one focused workspace.',
+      secondaryHref: canViewLms(user) ? '/lms' : '/teacher-timetable',
+      secondaryLabel: canViewLms(user) ? 'Open LMS' : 'My Timetable',
+      progress: 82,
+    }
+  }
+
+  if (isStaff(user)) {
+    const designation = staffDesignation(user) || 'Staff'
+    return {
+      badge: `${designation} Desk`,
+      title: 'Welcome back',
+      description: canViewFees(user)
+        ? 'Track student records, fee operations, finance documents, and day-to-day office workload with clear role boundaries.'
+        : canViewTimetable(user)
+          ? 'Review students, courses, timetable context, documents, and office work without exposing restricted academic actions.'
+          : 'Review students, documents, reports, and daily office activity with staff-safe access controls.',
+      secondaryHref: canViewFees(user) ? '/fees' : canViewTimetable(user) ? '/timetable' : '/reports',
+      secondaryLabel: canViewFees(user) ? 'Open Fees' : canViewTimetable(user) ? 'View Timetable' : 'View Reports',
+      progress: canViewFees(user) ? 76 : 68,
+    }
+  }
+
+  return {
+    badge: 'Command Center',
+    title: 'Welcome back',
+    description: 'Keep enrollment, academics, attendance, finance, and department health moving from one polished dashboard.',
+    secondaryHref: '/reports',
+    secondaryLabel: 'View Reports',
+    progress: 88,
+  }
 }

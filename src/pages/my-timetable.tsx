@@ -15,7 +15,7 @@ export function MyTimetablePage() {
       <GlassCard className="p-6">
         <Badge className="mb-3 border-primary/20 bg-primary/10 text-primary">My Timetable</Badge>
         <h1 className="text-3xl font-bold tracking-normal text-foreground">Weekly Schedule</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">Generated from your enrolled course schedules. A dedicated timetable module can replace this later.</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">Your weekly classes from enrolled courses and approved timetable slots.</p>
       </GlassCard>
 
       {isLoading ? (

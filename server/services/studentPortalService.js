@@ -6,11 +6,13 @@ import { Student } from '../models/Student.js'
 import { StudentCourse } from '../models/StudentCourse.js'
 import { StudentDocument, documentCategories } from '../models/StudentDocument.js'
 import { listNotifications, markNotificationRead } from './notificationService.js'
+import { getStudentTimetable } from './timetableService.js'
 
 export async function getStudentPortalProfile(user) {
   const student = await loadStudent(user.student.id)
-  const [courses, attendance, grades, documents, notifications] = await Promise.all([
+  const [courses, timetable, attendance, grades, documents, notifications] = await Promise.all([
     listStudentPortalCourses(user),
+    listStudentPortalTimetable(user),
     listStudentPortalAttendance(user),
     listStudentPortalGrades(user),
     listStudentPortalDocuments(user),
@@ -29,7 +31,7 @@ export async function getStudentPortalProfile(user) {
       creditsRemaining: Math.max(0, 160 - creditsCompleted),
       documents: documents.total,
       unreadNotifications: notifications,
-      todayClasses: buildTimetableItems(courses.items).filter((item) => item.day === currentDay()).slice(0, 4),
+      todayClasses: timetable.items.filter((item) => item.day === currentDay()).slice(0, 4),
       upcomingExams: buildUpcomingExams(grades.grades),
       pendingAssignments: [],
       recentDocuments: documents.documents.slice(0, 3),
@@ -89,11 +91,7 @@ export async function listStudentPortalCourses(user) {
 }
 
 export async function listStudentPortalTimetable(user) {
-  const courses = await listStudentPortalCourses(user)
-  return {
-    items: buildTimetableItems(courses.items),
-    source: 'course-schedules',
-  }
+  return getStudentTimetable(user.student.id)
 }
 
 export async function listStudentPortalAttendance(user) {
@@ -235,56 +233,6 @@ function serializeCourse(course) {
     semester: course.semester,
     status: course.status,
   }
-}
-
-function buildTimetableItems(enrollments) {
-  return enrollments.flatMap((enrollment) => {
-    const course = enrollment.course
-    const parsed = parseSchedule(course.schedule)
-    if (parsed.length === 0) {
-      return [{
-        id: `${enrollment.enrollmentId}-unscheduled`,
-        day: 'Unscheduled',
-        time: course.schedule || 'Schedule pending',
-        course: course.title,
-        courseCode: course.code,
-        room: course.room || 'Room pending',
-        faculty: course.faculty,
-      }]
-    }
-
-    return parsed.map((slot, index) => ({
-      id: `${enrollment.enrollmentId}-${index}`,
-      day: slot.day,
-      time: slot.time,
-      course: course.title,
-      courseCode: course.code,
-      room: course.room,
-      faculty: course.faculty,
-    }))
-  })
-}
-
-function parseSchedule(schedule = '') {
-  const match = schedule.match(/^([A-Za-z/,\s]+)\s+(.+)$/)
-  if (!match) return []
-
-  const dayMap = {
-    Mon: 'Monday',
-    Tue: 'Tuesday',
-    Wed: 'Wednesday',
-    Thu: 'Thursday',
-    Fri: 'Friday',
-    Sat: 'Saturday',
-    Sun: 'Sunday',
-  }
-  const dayPart = match[1].trim()
-  const time = match[2].trim()
-  return dayPart
-    .split(/[\/,]/)
-    .map((day) => day.trim())
-    .filter(Boolean)
-    .map((day) => ({ day: dayMap[day] ?? day, time }))
 }
 
 function buildUpcomingExams(grades) {

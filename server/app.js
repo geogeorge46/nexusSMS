@@ -18,12 +18,17 @@ import { catalogRouter } from './routes/catalogRoutes.js'
 import { courseRouter } from './routes/courseRoutes.js'
 import { dashboardRouter } from './routes/dashboardRoutes.js'
 import { gradeRouter } from './routes/gradeRoutes.js'
+import { feeRouter } from './routes/feeRoutes.js'
+import { examRouter } from './routes/examRoutes.js'
+import { lmsRouter } from './routes/lmsRoutes.js'
 import { notificationRouter } from './routes/notificationRoutes.js'
+import { parentPortalRouter } from './routes/parentPortalRoutes.js'
 import { reportRouter } from './routes/reportRoutes.js'
 import { studentDocumentRouter } from './routes/studentDocumentRoutes.js'
 import { studentImportRouter } from './routes/studentImportRoutes.js'
 import { studentPortalRouter } from './routes/studentPortalRoutes.js'
 import { studentRouter } from './routes/studentRoutes.js'
+import { timetableRouter } from './routes/timetableRoutes.js'
 
 export const app = express()
 
@@ -97,12 +102,17 @@ app.use('/api/admins', adminRouter)
 app.use('/api/catalog', catalogRouter)
 app.use('/api/student-portal', studentPortalRouter)
 app.use('/api/portal', studentPortalRouter)
+app.use('/api/parent-portal', parentPortalRouter)
 app.use('/api/students/import', studentImportRouter)
 app.use('/api/students', studentRouter)
 app.use('/api/courses', courseRouter)
 app.use('/api/dashboard', dashboardRouter)
 app.use('/api/attendance', attendanceRouter)
 app.use('/api/grades', gradeRouter)
+app.use('/api/fees', feeRouter)
+app.use('/api/exams', examRouter)
+app.use('/api/lms', lmsRouter)
+app.use('/api/timetable', timetableRouter)
 app.use('/api/documents', studentDocumentRouter)
 app.use('/api/notifications', notificationRouter)
 app.use('/api/reports', reportRouter)

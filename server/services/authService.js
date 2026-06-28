@@ -1,9 +1,10 @@
 import { User } from '../models/User.js'
 import { Student } from '../models/Student.js'
+import { ParentProfile } from '../models/ParentProfile.js'
 import { signAuthToken } from './authTokenService.js'
 import { hashPassword, validatePasswordStrength, verifyPassword } from './passwordService.js'
 
-const loginRoles = new Set(['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student'])
+const loginRoles = new Set(['Admin', 'Super Admin', 'Teacher', 'Staff', 'Student', 'Parent'])
 
 export async function signupUser({ name, email, password, role = 'Admin' }) {
   const normalizedEmail = normalizeEmail(email)
@@ -64,6 +65,15 @@ export async function loginUser({ email, password }) {
 
     if (!student || student.status === 'Inactive') {
       const error = new Error('Student account is inactive. Please contact the academic office.')
+      error.statusCode = 403
+      throw error
+    }
+  }
+
+  if (user.role === 'Parent') {
+    const parent = await ParentProfile.findOne({ userId: user._id, status: 'Active' }).select('_id').lean()
+    if (!parent) {
+      const error = new Error('Parent account is inactive. Please contact the office.')
       error.statusCode = 403
       throw error
     }

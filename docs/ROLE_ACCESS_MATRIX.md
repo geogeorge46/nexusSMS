@@ -1,93 +1,73 @@
-# Nexus SMS Role Access Matrix
+# Role Access Matrix
 
-This matrix documents the current role-based access rules for the React sidebar, route guards, and Express API middleware.
+## Super Admin
 
-## Test Login Accounts
+- Pages visible: all dashboards, students, documents, courses, attendance, grades, exams, LMS, reports, fees, timetable, institution modules, admin management, audit logs, governance, settings.
+- Actions allowed: full create, read, update, delete, imports, assignments, payments, publishing, seed/demo verification.
+- Actions blocked: none by role; still subject to data validation.
 
-Run `npm run seed:institution` and `npm run seed:constraints` before testing the full matrix.
+## Admin
 
-| Role | Email | Password | Notes |
-| --- | --- | --- | --- |
-| Super Admin | `admin@nexus.com` | `Admin@12345` | Full platform owner account from `seed:institution`. |
-| Admin | `qa.admin@nexus.local` | `Admin@12345` | Deterministic QA admin account. |
-| Teacher | `constraint.java.faculty@nexus.local` | `Teacher@12345` | Teaching staff assigned to seeded courses. |
-| Staff - Admission Officer | `constraint.admission.officer@nexus.local` | `Teacher@12345` | Non-teaching staff with admission permissions. |
-| Staff - Office Clerk | `constraint.office.clerk@nexus.local` | `Teacher@12345` | Non-teaching staff with student/document update permissions. |
-| Staff - Librarian | `constraint.librarian@nexus.local` | `Teacher@12345` | Non-teaching view-only academic access. |
-| Staff - Accountant | `constraint.accountant@nexus.local` | `Teacher@12345` | Non-teaching document/financial support access. |
-| Staff - Lab Assistant | `constraint.lab.assistant@nexus.local` | `Teacher@12345` | Non-teaching course/student view access. |
+- Pages visible: all operational pages except Admin Management.
+- Actions allowed: manage students, courses, institution catalog, staff, enrollments, attendance, grades, fees, timetable, exams, LMS, documents, reports, audit logs.
+- Actions blocked: create/update/delete Super Admin/Admin users.
 
-## Page Visibility
+## Teacher
 
-| Role | Pages visible in sidebar |
-| --- | --- |
-| Super Admin | Dashboard, Students, Documents, Courses, Attendance, Grades, Reports, Departments, Programs, Academic Years, Semesters, Staff, Course Assignments, Enrollments, Admin Management, Audit Logs, Governance, Settings |
-| Admin | Dashboard, Students, Documents, Courses, Attendance, Grades, Reports, Departments, Programs, Academic Years, Semesters, Staff, Course Assignments, Enrollments, Audit Logs, Governance, Settings |
-| Teacher | Dashboard, Students, Documents, Courses, Attendance, Grades, Reports, Departments, Programs, Academic Years, Semesters, Settings |
-| Staff - Admission Officer | Dashboard, Students, Documents, Courses, Reports, Departments, Programs, Academic Years, Semesters, Settings |
-| Staff - Office Clerk | Dashboard, Students, Documents, Reports, Settings |
-| Staff - Librarian | Dashboard, Students, Documents, Courses, Reports, Settings |
-| Staff - Accountant | Dashboard, Students, Documents, Reports, Settings |
-| Staff - Lab Assistant | Dashboard, Students, Documents, Courses, Reports, Settings |
+- Pages visible: dashboard, students, courses, attendance, grades, exams, LMS, reports, my timetable, settings.
+- Actions allowed: mark attendance and grades for assigned courses, view own timetable, enter results for assigned exam schedules, manage LMS for assigned courses.
+- Actions blocked: admin management, audit logs, fee management, institution editing, unassigned-course attendance/grades/results/LMS.
 
-## Actions Allowed
+## Staff: Admission Officer
 
-| Role | Actions allowed |
-| --- | --- |
-| Super Admin | Full create, read, update, delete access for admins, institution catalog, students, courses, documents, attendance, grades, reports, audit logs, and governance. |
-| Admin | Full academic and operational management for institution catalog, students, courses, documents, attendance, grades, reports, audit logs, and governance. |
-| Teacher | View students, documents, courses, and limited reports. Mark attendance and add grades only for assigned courses and enrolled students. View institution structure modules needed for academic context. |
-| Staff - Admission Officer | Create and update student admission records. Upload, verify, and manage admission documents. View courses and core institution structure. View students/courses reports. |
-| Staff - Office Clerk | Create/update student records and manage general documents. View students and limited reports. |
-| Staff - Librarian | View students, courses, documents, and limited reports. |
-| Staff - Accountant | View students and limited reports. Upload/manage student documents for financial workflows. |
-| Staff - Lab Assistant | View students, courses, documents, and limited reports. |
+- Pages visible: dashboard, students, documents, reports, courses where useful, departments/programs/academic years/semesters view-only, settings.
+- Actions allowed: create/update admission details, upload/verify admission documents, view academic structure.
+- Actions blocked: attendance, grades, exams/LMS management, fees, timetable management, audit logs, admin management.
 
-## Actions Blocked
+## Staff: Office Clerk
 
-| Role | Actions blocked |
-| --- | --- |
-| Super Admin | None by role. Business validations still apply, such as valid enrollment and duplicate prevention. |
-| Admin | Admin Management is blocked because it is Super Admin only. Business validations still apply. |
-| Teacher | Cannot create/update/delete students, courses, institution catalog, staff, course assignments, enrollments, admins, audit logs, or governance settings. Cannot mark attendance or grades for unassigned courses or non-enrolled students. |
-| Staff - Admission Officer | Cannot mark attendance, add grades, manage admins, view audit logs, edit institution catalog, manage courses, assign faculty, or enroll students into courses. |
-| Staff - Office Clerk | Cannot mark attendance, add grades, manage admins, view audit logs, edit institution catalog, manage courses, assign faculty, or enroll students into courses. |
-| Staff - Librarian | Cannot edit students, documents, courses, academic records, institution catalog, attendance, grades, admins, audit logs, or governance settings. |
-| Staff - Accountant | Cannot edit students, courses, academic records, institution catalog, attendance, grades, admins, audit logs, or governance settings. |
-| Staff - Lab Assistant | Cannot edit students, documents, courses, academic records, institution catalog, attendance, grades, admins, audit logs, or governance settings. |
+- Pages visible: dashboard, students, documents, reports, settings.
+- Actions allowed: update basic student details and manage general documents.
+- Actions blocked: academic structure editing, attendance, grades, exams/LMS, fees, timetable management, audit logs, admin management.
 
-## Backend Permission Checks
+## Staff: Librarian
 
-| API area | Middleware / rule |
-| --- | --- |
-| `/api/admins` | `requireSuperAdmin`; Admin, Teacher, and Staff receive 403. |
-| `/api/catalog/:resource` | Authenticated users can read. Only Admin and Super Admin can create, update, or delete. |
-| `/api/students` | Authenticated users can read. Admin, Super Admin, Admission Officer, and Office Clerk can create/update. Only Admin and Super Admin can delete. |
-| `/api/courses` | Authenticated users can read. Only Admin and Super Admin can create, update, or delete. |
-| `/api/student-documents` | Authenticated users can read/download. Admin, Super Admin, Admission Officer, Office Clerk, and Accountant can upload/manage. |
-| `/api/attendance` | Admin, Super Admin, and Teacher only. Service layer also checks assigned teacher and enrolled student/course pair. |
-| `/api/grades` | Admin, Super Admin, and Teacher only. Service layer also checks assigned teacher, enrolled student/course pair, mark range, and duplicate assessment. |
-| `/api/reports/students` and `/api/reports/courses` | Admin, Super Admin, Teacher, and Staff. |
-| `/api/reports/attendance` and `/api/reports/grades` | Admin, Super Admin, and Teacher only. |
-| Report exports | Admin and Super Admin only. |
+- Pages visible: dashboard, students, courses, reports, settings.
+- Actions allowed: view students and courses.
+- Actions blocked: academic edits, attendance, grades, exams/LMS, fees, institution management, audit logs.
 
-## Browser QA Checklist
+## Staff: Accountant
 
-1. Log in as each account above.
-2. Confirm the sidebar shows only the pages listed in this matrix.
-3. Try direct URLs for hidden pages, such as `/admins`, `/audit-logs`, `/attendance`, `/grades`, and `/institution/staff`.
-4. Confirm blocked pages redirect to the dashboard or their safe list page.
-5. Confirm Staff users see view-only controls where applicable: no Add Course, no institution create form, no Edit/Delete course actions, and no attendance/grade pages.
-6. Confirm Admission Officer and Office Clerk can open student create/edit pages, while Librarian, Accountant, Lab Assistant, and Teacher cannot.
-7. Confirm Teacher can open attendance and grades, but receives clear backend errors when using an unassigned course or a non-enrolled student-course pair.
+- Pages visible: dashboard, students, documents, reports, fee management, settings.
+- Actions allowed: view students, manage finance documents, view fee records, record payments.
+- Actions blocked: academic edits, attendance, grades, exams/LMS, timetable, institution management, audit logs.
 
-## Postman QA Checklist
+## Staff: Lab Assistant
 
-1. `POST /api/auth/login` with one test account and copy the returned token.
-2. Add `Authorization: Bearer <token>` to all requests.
-3. For Staff, verify `POST /api/attendance/mark` returns 403 with `Academic access requires an admin or teaching staff account`.
-4. For Staff, verify `POST /api/catalog/departments` returns 403 with `Admin access required`.
-5. For Admin, verify `GET /api/admins` returns 403 with `Super Admin access required`.
-6. For Teacher, verify `POST /api/catalog/departments` returns 403 with `Admin access required`.
-7. For Admission Officer, verify `POST /api/students` is allowed past authorization and then fails only on validation if the body is incomplete.
-8. For Lab Assistant, verify `GET /api/reports/students` returns 200 but `GET /api/reports/grades` returns 403.
+- Pages visible: dashboard, students, courses, reports, timetable view, settings.
+- Actions allowed: view students, courses, and lab timetable.
+- Actions blocked: attendance, grades, exams/LMS management, fees, institution management, audit logs.
+
+## Student
+
+- Pages visible: dashboard, my profile, courses, timetable, exams, hall tickets, results, assignments, submissions, materials, attendance, grades, documents, fees, receipts, notifications, calendar, support, settings.
+- Actions allowed: view own data, submit own assignments, update own limited profile fields, read own notifications.
+- Actions blocked: all admin/staff/teacher pages, all other student records, attendance marking, grade/result creation, fee/payment mutation.
+
+## Parent
+
+- Pages visible: dashboard, children, attendance, grades/results, fees, assignments, timetable, documents, notifications, support, settings.
+- Actions allowed: view linked child data, switch between linked children, read own notifications.
+- Actions blocked: unlinked students, all mutation of academic/fee records, student portal endpoints, admin/staff/teacher pages.
+
+## Test Logins
+
+```txt
+admin@nexus.com / Admin@12345
+qa.admin@nexus.local / Admin@12345
+parent.aarav@nexus.local / Parent@12345
+parent.maya@nexus.local / Parent@12345
+parent.family@nexus.local / Parent@12345
+```
+
+Teacher, staff, and student demo emails are printed by `npm run seed:institution` and `npm run seed:constraints`.

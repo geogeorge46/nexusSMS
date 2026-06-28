@@ -100,6 +100,10 @@ export function StudentPortalDashboardPage() {
               <Badge>{data.student.status}</Badge>
               {data.summary.attendanceAverage < 75 && <Badge className="bg-amber-500/10 text-amber-700">Low attendance</Badge>}
             </div>
+            <div className="mt-4 space-y-4">
+              <ProgressBar label="Attendance eligibility" value={data.summary.attendanceAverage} />
+              <ProgressBar label="Credit completion" value={completionRate(data.summary.creditsCompleted, data.summary.creditsRemaining)} />
+            </div>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               Eligibility is based on attendance and published academic records. Final clearance remains subject to office verification.
             </p>
@@ -116,6 +120,26 @@ export function StudentPortalDashboardPage() {
       )}
     </div>
   )
+}
+
+function ProgressBar({ label, value }: { label: string; value: number }) {
+  const safeValue = Math.min(100, Math.max(0, Math.round(value)))
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold text-muted-foreground">
+        <span>{label}</span>
+        <span>{safeValue}%</span>
+      </div>
+      <div className="mt-2 h-2 rounded-full bg-muted">
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${safeValue}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function completionRate(done: number, remaining: number) {
+  const total = done + remaining
+  return total > 0 ? (done / total) * 100 : 0
 }
 
 function DashboardList({ empty, items, title }: { empty: string; items: string[]; title: string }) {
